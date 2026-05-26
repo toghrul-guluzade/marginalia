@@ -22,6 +22,9 @@ interface PDFViewerProps {
   docId: string;
   /** Zoom multiplier applied on top of fit-to-width. Default 1. */
   zoom?: number;
+  /** When true, clicking a page places a sticky note. */
+  noteMode?: boolean;
+  noteColor?: HighlightColor;
   /** Reports the total page count once the document loads. */
   onTotalPages?: (total: number) => void;
   /** Reports the most-visible page as the user scrolls. */
@@ -62,7 +65,7 @@ function ErrorState({ error }: { error: Error }) {
  * device-pixel-ratio quality. Exposes scroll-to-page via a ref handle.
  */
 const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer(
-  { url, docId, zoom = 1, onTotalPages, onCurrentPageChange },
+  { url, docId, zoom = 1, noteMode = false, noteColor = "yellow", onTotalPages, onCurrentPageChange },
   ref,
 ) {
   const { pdf, totalPages, isLoading, error } = usePDFDocument(url);
@@ -127,6 +130,8 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
             pageNumber={pageNumber}
             docId={docId}
             zoom={zoom}
+            noteMode={noteMode}
+            noteColor={noteColor}
             onHighlightClick={(highlight, anchor) => setActivePopover({ highlight, anchor })}
           />
         ))}

@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import HighlightLayer from "./HighlightLayer";
-import type { Highlight } from "../../types/annotation";
+import StickyNote from "../annotations/StickyNote";
+import { useAnnotationStore } from "../../store/annotationStore";
+import type { Highlight, HighlightColor, StickyNote as StickyNoteType } from "../../types/annotation";
+
+// Stable reference so the selector doesn't return a fresh array each render.
+const EMPTY: StickyNoteType[] = [];
 
 interface PDFPageProps {
   pdf: PDFDocumentProxy;
@@ -13,6 +18,9 @@ interface PDFPageProps {
   zoom?: number;
   onHighlightClick: (highlight: Highlight, rect: DOMRect) => void;
   pulsingId?: string | null;
+  /** When true, clicking the page places a sticky note. */
+  noteMode?: boolean;
+  noteColor?: HighlightColor;
 }
 
 /**
@@ -32,7 +40,12 @@ export default function PDFPage({
   zoom = 1,
   onHighlightClick,
   pulsingId,
+  noteMode = false,
+  noteColor = "yellow",
 }: PDFPageProps) {
+  const stickyNotes = useAnnotationStore((s) => s.stickyNotes[docId] ?? EMPTY);
+  const addStickyNote = useAnnotationStore((s) => s.addStickyNote);
+  const notesOnPage = stickyNotes.filter((n) => n.pageNumber === pageNumber);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
@@ -134,6 +147,40 @@ export default function PDFPage({
             height={size.height}
             onHighlightClick={onHighlightClick}
             pulsingId={pulsingId}
+          />
+        )}
+
+        {/* Sticky note pins (positioned by normalized coords) */}
+        {size.width > 0 &&
+          notesOnPage.map((note) => (
+            <StickyNote
+              key={note.id}
+              note={note}
+              docId={docId}
+              pageWidth={size.width}
+              pageHeight={size.height}
+            />
+          ))}
+
+        {/* Note-placement overlay: captures clicks while note mode is active */}
+        {noteMode && size.width > 0 && (
+          <div
+            className="absolute inset-0 z-50 cursor-crosshair"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = (e.clientX - rect.left) / rect.width;
+              const y = (e.clientY - rect.top) / rect.height;
+              addStickyNote({
+                id: crypto.randomUUID(),
+                docId,
+                pageNumber,
+                x,
+                y,
+                content: "",
+                color: noteColor,
+                createdAt: new Date().toISOString(),
+              });
+            }}
           />
         )}
       </div>

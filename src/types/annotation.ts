@@ -19,6 +19,18 @@ export interface Highlight {
   createdAt: string;
 }
 
+export interface StickyNote {
+  id: string;
+  docId: string;
+  pageNumber: number;
+  /** Normalized 0-1 position on the page (so it survives zoom). */
+  x: number;
+  y: number;
+  content: string;
+  color: HighlightColor;
+  createdAt: string;
+}
+
 /** Map of highlight/note color name -> hex used for rendering. */
 export const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
   yellow: "#FFE600",

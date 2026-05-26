@@ -5,18 +5,26 @@ import {
   ZoomIn,
   ZoomOut,
   MoveHorizontal,
+  StickyNote,
 } from "lucide-react";
+import { HIGHLIGHT_COLORS } from "../../types/annotation";
+import type { HighlightColor } from "../../types/annotation";
 
 const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const COLORS: HighlightColor[] = ["yellow", "green", "pink", "blue"];
 
 interface PDFToolbarProps {
   currentPage: number;
   totalPages: number;
   zoom: number;
+  noteMode: boolean;
+  noteColor: HighlightColor;
   onPrevPage: () => void;
   onNextPage: () => void;
   onZoomChange: (zoom: number) => void;
   onFitWidth: () => void;
+  onToggleNoteMode: () => void;
+  onNoteColorChange: (color: HighlightColor) => void;
 }
 
 function iconButton(disabled = false) {
@@ -27,10 +35,14 @@ export default function PDFToolbar({
   currentPage,
   totalPages,
   zoom,
+  noteMode,
+  noteColor,
   onPrevPage,
   onNextPage,
   onZoomChange,
   onFitWidth,
+  onToggleNoteMode,
+  onNoteColorChange,
 }: PDFToolbarProps) {
   const [customZoom, setCustomZoom] = useState("");
 
@@ -130,6 +142,41 @@ export default function PDFToolbar({
         >
           <MoveHorizontal size={18} />
         </button>
+      </div>
+
+      <div className="h-5 w-px bg-gray-200" />
+
+      {/* Note mode */}
+      <div className="flex items-center gap-2">
+        <button
+          className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-sm ${
+            noteMode
+              ? "bg-brand text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+          onClick={onToggleNoteMode}
+          aria-pressed={noteMode}
+          title="Note mode (N)"
+        >
+          <StickyNote size={16} />
+          {noteMode ? "Note mode" : "Note"}
+        </button>
+
+        {noteMode && (
+          <div className="flex items-center gap-1.5">
+            {COLORS.map((color) => (
+              <button
+                key={color}
+                className={`h-5 w-5 rounded-full border transition-transform hover:scale-110 ${
+                  noteColor === color ? "ring-2 ring-gray-400 ring-offset-1" : "border-black/10"
+                }`}
+                style={{ backgroundColor: HIGHLIGHT_COLORS[color] }}
+                aria-label={`Note color ${color}`}
+                onClick={() => onNoteColorChange(color)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

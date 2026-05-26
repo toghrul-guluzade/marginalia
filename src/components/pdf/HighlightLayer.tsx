@@ -2,6 +2,9 @@ import { useAnnotationStore } from "../../store/annotationStore";
 import { HIGHLIGHT_COLORS } from "../../types/annotation";
 import type { Highlight } from "../../types/annotation";
 
+// Stable reference so the selector doesn't return a fresh array each render.
+const EMPTY: Highlight[] = [];
+
 interface HighlightLayerProps {
   docId: string;
   pageNumber: number;
@@ -28,7 +31,7 @@ export default function HighlightLayer({
   onHighlightClick,
   pulsingId,
 }: HighlightLayerProps) {
-  const highlights = useAnnotationStore((s) => s.highlights[docId] ?? []);
+  const highlights = useAnnotationStore((s) => s.highlights[docId] ?? EMPTY);
 
   const onPage = highlights.filter((h) => h.rects.some((r) => r.pageNumber === pageNumber));
 

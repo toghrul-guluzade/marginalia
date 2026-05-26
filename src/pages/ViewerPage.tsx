@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import PDFViewer, { type PDFViewerHandle } from "../components/pdf/PDFViewer";
 import PDFToolbar from "../components/pdf/PDFToolbar";
+import type { HighlightColor } from "../types/annotation";
 
 // Hardcoded test PDF for Sprint 1. Replaced by Supabase-backed docs in Sprint 4.
 const TEST_PDF_URL =
@@ -15,6 +16,8 @@ export default function ViewerPage() {
   const [totalPages, setTotalPages] = useState(0);
   // zoom === 1 means fit-to-width; presets scale relative to that.
   const [zoom, setZoom] = useState(1);
+  const [noteMode, setNoteMode] = useState(false);
+  const [noteColor, setNoteColor] = useState<HighlightColor>("yellow");
 
   const goToPage = useCallback(
     (page: number) => {
@@ -55,10 +58,14 @@ export default function ViewerPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           zoom={zoom}
+          noteMode={noteMode}
+          noteColor={noteColor}
           onPrevPage={prevPage}
           onNextPage={nextPage}
           onZoomChange={setZoom}
           onFitWidth={() => setZoom(1)}
+          onToggleNoteMode={() => setNoteMode((v) => !v)}
+          onNoteColorChange={setNoteColor}
         />
       </header>
       <main className="min-h-0 flex-1">
@@ -67,6 +74,8 @@ export default function ViewerPage() {
           url={TEST_PDF_URL}
           docId={docId}
           zoom={zoom}
+          noteMode={noteMode}
+          noteColor={noteColor}
           onTotalPages={setTotalPages}
           onCurrentPageChange={setCurrentPage}
         />
