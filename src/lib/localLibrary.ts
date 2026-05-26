@@ -64,8 +64,21 @@ function openDB(): Promise<IDBDatabase> {
         };
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result;
+      // If another tab requests a newer version, close so it isn't blocked.
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
+    req.onerror = () => {
+      dbPromise = null; // allow a retry after a failed open
+      reject(req.error);
+    };
+    // Another open connection (e.g. a second tab) is blocking the upgrade.
+    req.onblocked = () => {
+      dbPromise = null;
+      reject(new Error("Database is open in another tab. Close it and reload."));
+    };
   });
   return dbPromise;
 }

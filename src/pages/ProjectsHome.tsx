@@ -23,9 +23,13 @@ export default function ProjectsHome() {
   const editRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
-    const [ps, cs] = await Promise.all([listProjects(), documentCounts()]);
-    setProjects(ps.sort((a, b) => b.created_at.localeCompare(a.created_at)));
-    setCounts(cs);
+    try {
+      const [ps, cs] = await Promise.all([listProjects(), documentCounts()]);
+      setProjects(ps.sort((a, b) => b.created_at.localeCompare(a.created_at)));
+      setCounts(cs);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not load projects");
+    }
   }, []);
 
   useEffect(() => {
@@ -33,11 +37,14 @@ export default function ProjectsHome() {
   }, [refresh]);
 
   async function handleCreate() {
-    const name = newName.trim();
-    if (!name) return;
-    const project = await createProject(name);
-    setNewName("");
-    navigate(`/project/${project.id}`);
+    const name = newName.trim() || "Untitled project";
+    try {
+      const project = await createProject(name);
+      setNewName("");
+      navigate(`/project/${project.id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not create project");
+    }
   }
 
   async function handleRename(id: string, name: string) {
@@ -82,9 +89,8 @@ export default function ProjectsHome() {
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
           />
           <button
-            className="flex items-center gap-1.5 rounded-md bg-paper px-3 py-2 text-sm font-medium text-ink hover:opacity-90 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-md bg-paper px-3 py-2 text-sm font-medium text-ink hover:opacity-90"
             onClick={handleCreate}
-            disabled={!newName.trim()}
           >
             <Plus size={16} /> Create project
           </button>
