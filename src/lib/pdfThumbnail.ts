@@ -44,3 +44,7 @@ export function cacheThumbnail(docId: string, dataUrl: string) {
 export function getCachedThumbnail(docId: string): string | null {
   return localStorage.getItem(THUMB_PREFIX + docId);
 }
+
+export function removeCachedThumbnail(docId: string) {
+  localStorage.removeItem(THUMB_PREFIX + docId);
+}

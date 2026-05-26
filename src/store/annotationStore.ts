@@ -16,6 +16,9 @@ interface AnnotationState {
   addStickyNote: (note: StickyNote) => void;
   removeStickyNote: (docId: string, id: string) => void;
   updateStickyNote: (docId: string, id: string, patch: Partial<StickyNote>) => void;
+
+  /** Remove all annotations for a document (used on document/project delete). */
+  clearDocument: (docId: string) => void;
 }
 
 // Annotations persist to localStorage — fully local, no backend.
@@ -86,6 +89,15 @@ export const useAnnotationStore = create<AnnotationState>()(
             ),
           },
         })),
+
+      clearDocument: (docId) =>
+        set((state) => {
+          const highlights = { ...state.highlights };
+          const stickyNotes = { ...state.stickyNotes };
+          delete highlights[docId];
+          delete stickyNotes[docId];
+          return { highlights, stickyNotes };
+        }),
     }),
     { name: "research-studio-annotations" },
   ),

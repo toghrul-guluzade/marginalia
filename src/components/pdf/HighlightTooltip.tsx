@@ -54,7 +54,7 @@ export default function HighlightTooltip({ anchor, onHighlight, onQuickNote, onC
   return (
     <div
       ref={ref}
-      className="fixed z-50 flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1.5 shadow-lg"
+      className="fixed z-50 flex items-center gap-1 rounded-lg border border-ink-4 bg-ink-2 p-1.5 shadow-xl"
       style={{ left: pos.left, top: pos.top }}
       // keep the text selection alive while interacting with the tooltip
       onPointerDown={(e) => e.preventDefault()}
@@ -69,9 +69,9 @@ export default function HighlightTooltip({ anchor, onHighlight, onQuickNote, onC
           onClick={() => onHighlight(color)}
         />
       ))}
-      <span className="mx-0.5 h-5 w-px bg-gray-200" />
+      <span className="mx-0.5 h-5 w-px bg-rule" />
       <button
-        className="flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100"
+        className="flex h-6 w-6 items-center justify-center rounded text-dim hover:bg-ink-3 hover:text-paper"
         aria-label="Highlight and add note"
         title="Highlight + note"
         onClick={onQuickNote}

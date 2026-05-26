@@ -33,7 +33,7 @@ export default function QuickNoteEditor({ anchor, onSave, onCancel }: QuickNoteE
   return (
     <textarea
       ref={ref}
-      className="fixed z-50 resize-none rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg focus:border-brand focus:outline-none"
+      className="fixed z-50 resize-none rounded-lg border border-ink-4 bg-ink-2 p-2 text-sm text-paper placeholder:text-ink-5 shadow-xl focus:border-ink-5 focus:outline-none"
       style={{ left: pos.left, top: pos.top, width: WIDTH }}
       rows={2}
       placeholder="Add a note… (Enter to save)"

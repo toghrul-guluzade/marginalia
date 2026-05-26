@@ -19,9 +19,9 @@ import DocumentSearchBar from "./DocumentSearchBar";
 export type PageBg = "white" | "cream" | "dark";
 
 const PAGE_BG: Record<PageBg, string> = {
-  white: "bg-gray-100",
+  white: "bg-gray-200",
   cream: "bg-[#FAFAF7]",
-  dark: "bg-[#1A1A2E]",
+  dark: "bg-ink",
 };
 
 interface PDFViewerProps {
@@ -56,11 +56,11 @@ export interface PDFViewerHandle {
 
 function LoadingSkeleton() {
   return (
-    <div className="flex flex-col items-center gap-4 py-8" aria-busy="true">
+    <div className="flex h-full flex-col items-center gap-4 overflow-hidden bg-ink py-8" aria-busy="true">
       {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
-          className="w-full max-w-3xl aspect-[1/1.3] rounded bg-gray-200 animate-pulse"
+          className="aspect-[1/1.3] w-full max-w-xl animate-pulse rounded bg-ink-3"
         />
       ))}
     </div>
@@ -69,9 +69,9 @@ function LoadingSkeleton() {
 
 function ErrorState({ error }: { error: Error }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
-      <p className="text-lg font-medium text-gray-800">Could not load this PDF</p>
-      <p className="max-w-md text-sm text-gray-500">{error.message}</p>
+    <div className="flex h-full flex-col items-center justify-center gap-2 bg-ink p-8 text-center">
+      <p className="text-lg font-medium text-paper">Could not load this PDF</p>
+      <p className="max-w-md text-sm text-dim">{error.message}</p>
     </div>
   );
 }

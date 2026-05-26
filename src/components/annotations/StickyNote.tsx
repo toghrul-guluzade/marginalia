@@ -56,23 +56,23 @@ export default function StickyNote({ note, docId, pageWidth, pageHeight }: Stick
       {expanded && (
         <div
           ref={cardRef}
-          className="absolute left-2 top-2 w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-xl"
+          className="absolute left-2 top-2 w-56 rounded-lg border border-ink-4 bg-ink-2 p-2 shadow-2xl"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
           <textarea
             autoFocus
-            className="w-full resize-none rounded border border-gray-200 p-1.5 text-sm focus:border-brand focus:outline-none"
+            className="w-full resize-none rounded border border-ink-4 bg-ink-3 p-1.5 text-sm text-paper placeholder:text-ink-5 focus:border-ink-5 focus:outline-none"
             rows={3}
             placeholder="Write a note…"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onBlur={() => updateStickyNote(docId, note.id, { content })}
           />
-          <div className="mt-1.5 flex items-center justify-between text-xs text-gray-400">
+          <div className="mt-1.5 flex items-center justify-between text-xs text-dim">
             <span>{new Date(note.createdAt).toLocaleDateString()}</span>
             <button
-              className="inline-flex items-center gap-1 rounded p-0.5 hover:bg-red-50 hover:text-red-600"
+              className="inline-flex items-center gap-1 rounded p-0.5 hover:bg-ink-3 hover:text-red-400"
               onClick={() => removeStickyNote(docId, note.id)}
               aria-label="Delete note"
               title="Delete note"

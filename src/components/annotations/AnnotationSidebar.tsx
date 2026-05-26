@@ -103,24 +103,25 @@ export default function AnnotationSidebar({
 
   return (
     <aside
-      className={`flex h-full w-[280px] shrink-0 flex-col border-l border-gray-200 bg-white transition-all duration-200 ${
-        isOpen ? "" : "mr-[-280px]"
+      className={`flex h-full shrink-0 flex-col overflow-hidden border-l border-rule bg-ink-2 transition-all duration-200 ${
+        isOpen ? "w-[300px]" : "w-0 opacity-0"
       }`}
       aria-hidden={!isOpen}
     >
-      <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-        <h2 className="text-sm font-semibold text-gray-700">Annotations</h2>
-        <button className="rounded p-1 text-gray-400 hover:bg-gray-100" onClick={onClose} aria-label="Close sidebar">
-          <X size={16} />
+      <div className="flex items-center gap-2 border-b border-rule px-4 py-3">
+        <h2 className="flex-1 font-mono text-[11px] uppercase tracking-wider text-ghost">Annotations</h2>
+        <span className="rounded bg-ink-3 px-1.5 py-0.5 font-mono text-[10px] text-dim">{items.length}</span>
+        <button className="rounded p-1 text-dim hover:bg-ink-3 hover:text-paper" onClick={onClose} aria-label="Close sidebar">
+          <X size={15} />
         </button>
       </div>
 
       {/* Search */}
-      <div className="border-b border-gray-100 p-2">
-        <div className="flex items-center gap-2 rounded border border-gray-200 px-2">
-          <Search size={14} className="text-gray-400" />
+      <div className="border-b border-rule p-2.5">
+        <div className="flex items-center gap-2 rounded-md border border-rule bg-ink-3 px-2">
+          <Search size={14} className="text-dim" />
           <input
-            className="w-full py-1.5 text-sm focus:outline-none"
+            className="w-full bg-transparent py-1.5 text-sm text-paper placeholder:text-ink-5 focus:outline-none"
             placeholder="Search annotations…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -132,8 +133,8 @@ export default function AnnotationSidebar({
           {(["all", "highlights", "notes"] as FilterKind[]).map((k) => (
             <button
               key={k}
-              className={`rounded px-2 py-1 capitalize ${
-                kind === k ? "bg-brand text-white" : "text-gray-600 hover:bg-gray-100"
+              className={`rounded px-2 py-1 font-mono text-[10.5px] capitalize ${
+                kind === k ? "bg-ink-4 text-paper" : "bg-ink-3 text-dim hover:text-ghost"
               }`}
               onClick={() => setKind(k)}
             >
@@ -144,9 +145,7 @@ export default function AnnotationSidebar({
             {(Object.keys(HIGHLIGHT_COLORS) as HighlightColor[]).map((c) => (
               <button
                 key={c}
-                className={`h-4 w-4 rounded-full border ${
-                  colorFilter === c ? "ring-2 ring-gray-400" : "border-black/10"
-                }`}
+                className={`h-3.5 w-3.5 rounded-full ${colorFilter === c ? "ring-2 ring-paper" : ""}`}
                 style={{ backgroundColor: HIGHLIGHT_COLORS[c] }}
                 onClick={() => setColorFilter(colorFilter === c ? null : c)}
                 aria-label={`Filter ${c}`}
@@ -159,31 +158,31 @@ export default function AnnotationSidebar({
       {/* List */}
       <div className="min-h-0 flex-1 overflow-auto p-2">
         {items.length === 0 && (
-          <p className="mt-6 text-center text-sm text-gray-400">No annotations yet</p>
+          <p className="mt-6 text-center font-mono text-xs text-dim">No annotations yet</p>
         )}
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-1.5">
           {items.map((item) =>
             item.type === "highlight" ? (
               <li key={item.data.id}>
                 <button
-                  className="flex w-full gap-2 rounded border border-gray-200 p-2 text-left hover:bg-gray-50"
+                  className="flex w-full gap-2 rounded-md border border-rule bg-ink-3 p-2.5 text-left hover:border-ink-5 hover:bg-ink-4"
                   onClick={() => onSelectHighlight(item.data)}
                 >
                   <span
-                    className="w-1 shrink-0 rounded"
+                    className="mt-0.5 h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: HIGHLIGHT_COLORS[item.data.color] }}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm text-gray-800">
+                    <span className="block font-serif text-[12px] italic leading-snug text-ghost">
                       {truncate(item.data.selectedText, 120)}
                     </span>
                     {item.data.note && (
-                      <span className="mt-1 block text-xs italic text-gray-500">
+                      <span className="mt-1.5 block border-t border-rule pt-1.5 text-[11px] text-dim">
                         {truncate(item.data.note, 80)}
                       </span>
                     )}
                   </span>
-                  <span className="shrink-0 self-start rounded bg-gray-100 px-1 text-xs text-gray-500">
+                  <span className="shrink-0 self-start font-mono text-[10px] text-ink-5">
                     p.{highlightPage(item.data)}
                   </span>
                 </button>
@@ -191,20 +190,20 @@ export default function AnnotationSidebar({
             ) : (
               <li key={item.data.id}>
                 <button
-                  className="flex w-full gap-2 rounded border border-gray-200 p-2 text-left hover:bg-gray-50"
+                  className="flex w-full gap-2 rounded-md border border-rule bg-ink-3 p-2.5 text-left hover:border-ink-5 hover:bg-ink-4"
                   onClick={() => onSelectNote(item.data)}
                 >
                   <StickyNoteIcon
-                    size={16}
+                    size={14}
                     className="mt-0.5 shrink-0"
                     style={{ color: HIGHLIGHT_COLORS[item.data.color] }}
                   />
-                  <span className="min-w-0 flex-1 text-sm text-gray-800">
+                  <span className="min-w-0 flex-1 text-[12px] text-ghost">
                     {item.data.content ? truncate(item.data.content, 100) : (
-                      <em className="text-gray-400">Empty note</em>
+                      <em className="text-ink-5">Empty note</em>
                     )}
                   </span>
-                  <span className="shrink-0 self-start rounded bg-gray-100 px-1 text-xs text-gray-500">
+                  <span className="shrink-0 self-start font-mono text-[10px] text-ink-5">
                     p.{item.data.pageNumber}
                   </span>
                 </button>
@@ -215,14 +214,14 @@ export default function AnnotationSidebar({
       </div>
 
       {/* Export */}
-      <div className="border-t border-gray-200 p-2">
+      <div className="border-t border-rule p-2.5">
         <button
-          className="flex w-full items-center justify-center gap-2 rounded bg-brand py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-40"
+          className="flex w-full items-center justify-center gap-2 rounded-md border border-ink-4 py-2 font-mono text-[11.5px] tracking-wide text-dim hover:border-ink-5 hover:bg-ink-3 hover:text-ghost disabled:opacity-40"
           onClick={handleExport}
           disabled={highlights.length === 0 && stickyNotes.length === 0}
         >
-          <Download size={16} />
-          Export to Markdown
+          <Download size={13} />
+          Export as Markdown
         </button>
       </div>
     </aside>

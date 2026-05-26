@@ -67,10 +67,10 @@ export default function DocumentSearchBar({ scrollRootRef, onClose }: DocumentSe
   );
 
   return (
-    <div className="absolute right-4 top-2 z-50 flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 shadow-lg">
+    <div className="absolute right-4 top-2 z-50 flex items-center gap-2 rounded-lg border border-ink-4 bg-ink-2 px-2 py-1.5 shadow-xl">
       <input
         ref={inputRef}
-        className="w-44 text-sm focus:outline-none"
+        className="w-44 bg-transparent text-sm text-paper placeholder:text-ink-5 focus:outline-none"
         placeholder="Find in document…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -83,16 +83,16 @@ export default function DocumentSearchBar({ scrollRootRef, onClose }: DocumentSe
           }
         }}
       />
-      <span className="min-w-[4rem] text-center text-xs tabular-nums text-gray-500">
+      <span className="min-w-[4rem] text-center font-mono text-[11px] tabular-nums text-dim">
         {matches.length ? `${current + 1} of ${matches.length}` : query ? "0 of 0" : ""}
       </span>
-      <button className="rounded p-0.5 text-gray-500 hover:bg-gray-100" onClick={() => go(-1)} aria-label="Previous match">
+      <button className="rounded p-0.5 text-dim hover:bg-ink-3 hover:text-paper" onClick={() => go(-1)} aria-label="Previous match">
         <ChevronUp size={16} />
       </button>
-      <button className="rounded p-0.5 text-gray-500 hover:bg-gray-100" onClick={() => go(1)} aria-label="Next match">
+      <button className="rounded p-0.5 text-dim hover:bg-ink-3 hover:text-paper" onClick={() => go(1)} aria-label="Next match">
         <ChevronDown size={16} />
       </button>
-      <button className="rounded p-0.5 text-gray-500 hover:bg-gray-100" onClick={onClose} aria-label="Close search">
+      <button className="rounded p-0.5 text-dim hover:bg-ink-3 hover:text-paper" onClick={onClose} aria-label="Close search">
         <X size={16} />
       </button>
     </div>
