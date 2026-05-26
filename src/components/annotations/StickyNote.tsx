@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { StickyNote as StickyNoteIcon, Trash2 } from "lucide-react";
 import { useAnnotationStore } from "../../store/annotationStore";
 import { HIGHLIGHT_COLORS } from "../../types/annotation";
@@ -12,34 +12,31 @@ interface StickyNoteProps {
 }
 
 /**
- * A sticky note shown as a colored pin at a normalized page position. Clicking
- * the pin expands a card with an auto-saving textarea; dragging the pin moves it.
- * Position scales with zoom because it is derived from normalized coords * page size.
+ * A sticky note shown as a colored pin at a normalized page position.
+ * - Hover the pin → a popup previews the note text.
+ * - Click the pin → toggle the card open/closed (stays open until clicked again).
+ * - Click the text inside the card → edit it; saves on blur.
+ * - Drag the pin → reposition it.
  */
 export default function StickyNote({ note, docId, pageWidth, pageHeight }: StickyNoteProps) {
   const updateStickyNote = useAnnotationStore((s) => s.updateStickyNote);
   const removeStickyNote = useAnnotationStore((s) => s.removeStickyNote);
-  const [expanded, setExpanded] = useState(!note.content);
+
+  const [open, setOpen] = useState(!note.content); // brand-new notes open straight away
+  const [editing, setEditing] = useState(!note.content);
   const [content, setContent] = useState(note.content);
+  const [hover, setHover] = useState(false);
   const [dragPos, setDragPos] = useState<{ left: number; top: number } | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
+
   const wrapperRef = useRef<HTMLDivElement>(null);
   const movedRef = useRef(false);
 
   const left = dragPos ? dragPos.left : note.x * pageWidth;
   const top = dragPos ? dragPos.top : note.y * pageHeight;
 
-  useEffect(() => {
-    if (!expanded) return;
-    function onDown(e: PointerEvent) {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
-        updateStickyNote(docId, note.id, { content });
-        setExpanded(false);
-      }
-    }
-    window.addEventListener("pointerdown", onDown, true);
-    return () => window.removeEventListener("pointerdown", onDown, true);
-  }, [expanded, content, docId, note.id, updateStickyNote]);
+  function commit() {
+    updateStickyNote(docId, note.id, { content });
+  }
 
   // Drag the pin to reposition. The page container is the pin's offsetParent.
   function startDrag(e: React.PointerEvent) {
@@ -50,18 +47,11 @@ export default function StickyNote({ note, docId, pageWidth, pageHeight }: Stick
     movedRef.current = false;
     const startX = e.clientX;
     const startY = e.clientY;
+    const clamp = (v: number, max: number) => Math.min(Math.max(0, v), max);
 
-    function clamp(v: number, max: number) {
-      return Math.min(Math.max(0, v), max);
-    }
     function move(ev: PointerEvent) {
-      if (Math.abs(ev.clientX - startX) > 3 || Math.abs(ev.clientY - startY) > 3) {
-        movedRef.current = true;
-      }
-      setDragPos({
-        left: clamp(ev.clientX - rect.left, rect.width),
-        top: clamp(ev.clientY - rect.top, rect.height),
-      });
+      if (Math.abs(ev.clientX - startX) > 3 || Math.abs(ev.clientY - startY) > 3) movedRef.current = true;
+      setDragPos({ left: clamp(ev.clientX - rect.left, rect.width), top: clamp(ev.clientY - rect.top, rect.height) });
     }
     function up(ev: PointerEvent) {
       window.removeEventListener("pointermove", move);
@@ -84,33 +74,66 @@ export default function StickyNote({ note, docId, pageWidth, pageHeight }: Stick
         className="flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border border-black/10 shadow active:cursor-grabbing"
         style={{ backgroundColor: HIGHLIGHT_COLORS[note.color] }}
         onPointerDown={startDrag}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         onClick={(e) => {
           e.stopPropagation();
           if (movedRef.current) return; // it was a drag, not a click
-          setExpanded((v) => !v);
+          if (open) {
+            commit();
+            setOpen(false);
+          } else {
+            setEditing(!content); // read mode when there's already content
+            setOpen(true);
+          }
         }}
         aria-label="Sticky note"
-        title={note.content || "Sticky note — drag to move"}
       >
         <StickyNoteIcon size={13} className="text-black/60" />
       </button>
 
-      {expanded && !dragPos && (
+      {/* Hover preview (only when closed and there is content) */}
+      {hover && !open && !dragPos && note.content && (
+        <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-1 w-48 -translate-x-1/2 whitespace-pre-wrap rounded-lg border border-ink-4 bg-ink-2 px-2.5 py-1.5 text-xs leading-snug text-ghost shadow-xl">
+          {note.content}
+        </div>
+      )}
+
+      {/* Card — stays open until the pin is clicked again */}
+      {open && !dragPos && (
         <div
-          ref={cardRef}
           className="absolute left-2 top-2 w-56 rounded-lg border border-ink-4 bg-ink-2 p-2 shadow-2xl"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
-          <textarea
-            autoFocus
-            className="w-full resize-none rounded border border-ink-4 bg-ink-3 p-1.5 text-sm text-paper placeholder:text-ink-5 focus:border-ink-5 focus:outline-none"
-            rows={3}
-            placeholder="Write a note…"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onBlur={() => updateStickyNote(docId, note.id, { content })}
-          />
+          {editing ? (
+            <textarea
+              autoFocus
+              className="w-full resize-none rounded border border-ink-4 bg-ink-3 p-1.5 text-sm text-paper placeholder:text-ink-5 focus:border-ink-5 focus:outline-none"
+              rows={3}
+              placeholder="Write a note…"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              onBlur={() => {
+                commit();
+                setEditing(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  commit();
+                  setEditing(false);
+                }
+              }}
+            />
+          ) : (
+            <div
+              className="min-h-[2.5rem] cursor-text whitespace-pre-wrap rounded p-1.5 text-sm text-paper hover:bg-ink-3"
+              title="Click to edit"
+              onClick={() => setEditing(true)}
+            >
+              {content || <span className="text-ink-5">Click to add a note…</span>}
+            </div>
+          )}
           <div className="mt-1.5 flex items-center justify-between text-xs text-dim">
             <span>{new Date(note.createdAt).toLocaleDateString()}</span>
             <button
