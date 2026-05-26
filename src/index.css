@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Brand palette extending the default Tailwind colors.
+   Usage: bg-brand, bg-brand-light, text-brand-dark, etc. */
+@theme {
+  --color-brand: #534ab7;
+  --color-brand-light: #eeedfe;
+  --color-brand-dark: #3c3489;
+
+  /* Highlight colors used by the annotation layer */
+  --color-highlight-yellow: #ffe600;
+  --color-highlight-green: #64c878;
+  --color-highlight-pink: #e6649a;
+  --color-highlight-blue: #508cf0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
