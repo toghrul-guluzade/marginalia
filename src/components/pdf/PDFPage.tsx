@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+import HighlightLayer from "./HighlightLayer";
+import type { Highlight } from "../../types/annotation";
 
 interface PDFPageProps {
   pdf: PDFDocumentProxy;
@@ -9,6 +11,8 @@ interface PDFPageProps {
   docId: string;
   /** Zoom multiplier applied on top of the fit-to-width scale. Default 1. */
   zoom?: number;
+  onHighlightClick: (highlight: Highlight, rect: DOMRect) => void;
+  pulsingId?: string | null;
 }
 
 /**
@@ -21,8 +25,14 @@ interface PDFPageProps {
  * PDF bottom-left Y inversion is needed. Highlights are stored in scale-1.0
  * viewport coordinates and multiplied by `scale` at render time.
  */
-export default function PDFPage({ pdf, pageNumber, docId, zoom = 1 }: PDFPageProps) {
-  void docId; // used by HighlightLayer in Sprint 2.3
+export default function PDFPage({
+  pdf,
+  pageNumber,
+  docId,
+  zoom = 1,
+  onHighlightClick,
+  pulsingId,
+}: PDFPageProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
@@ -111,16 +121,21 @@ export default function PDFPage({ pdf, pageNumber, docId, zoom = 1 }: PDFPagePro
       >
         {/* Layer 1: PDF render */}
         <canvas ref={canvasRef} className="absolute inset-0 z-0" />
-        {/* Layer 2: highlight rectangles (populated in Sprint 2.3) */}
-        <svg
-          id="highlight-layer"
-          className="pointer-events-none absolute inset-0 z-10"
-          width={size.width}
-          height={size.height}
-          viewBox={`0 0 ${size.width} ${size.height}`}
-        />
         {/* Layer 3: transparent selectable text */}
         <div ref={textLayerRef} className="textLayer !z-20" />
+        {/* Layer 2 (raised above the transparent text layer so rects are
+            interactive; visually identical since glyphs live on the canvas) */}
+        {size.width > 0 && (
+          <HighlightLayer
+            docId={docId}
+            pageNumber={pageNumber}
+            scale={size.scale}
+            width={size.width}
+            height={size.height}
+            onHighlightClick={onHighlightClick}
+            pulsingId={pulsingId}
+          />
+        )}
       </div>
     </div>
   );

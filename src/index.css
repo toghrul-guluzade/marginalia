@@ -64,6 +64,27 @@ body,
   background: rgba(83, 74, 183, 0.3);
 }
 
+/* Highlight rectangles: a whole highlight (group of line rects) brightens on hover. */
+.hl-group rect {
+  fill-opacity: 0.35;
+  transition: fill-opacity 0.12s ease;
+}
+.hl-group:hover rect {
+  fill-opacity: 0.55;
+}
+@keyframes hl-pulse {
+  0%,
+  100% {
+    fill-opacity: 0.35;
+  }
+  50% {
+    fill-opacity: 0.85;
+  }
+}
+.hl-group.pulsing rect {
+  animation: hl-pulse 0.6s ease 2;
+}
+
 body {
   margin: 0;
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;

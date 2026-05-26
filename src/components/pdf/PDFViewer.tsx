@@ -3,6 +3,7 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
 import toast from "react-hot-toast";
 import { usePDFDocument } from "../../hooks/usePDFDocument";
@@ -12,6 +13,7 @@ import { useAnnotationStore } from "../../store/annotationStore";
 import type { Highlight, HighlightColor } from "../../types/annotation";
 import PDFPage from "./PDFPage";
 import HighlightTooltip from "./HighlightTooltip";
+import HighlightPopover from "../annotations/HighlightPopover";
 
 interface PDFViewerProps {
   /** A blob URL or remote URL to the PDF. */
@@ -68,6 +70,10 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
   const currentPage = usePageObserver(scrollRef, totalPages);
   const { selection, clear } = useTextSelection();
   const addHighlight = useAnnotationStore((s) => s.addHighlight);
+  const [activePopover, setActivePopover] = useState<{
+    highlight: Highlight;
+    anchor: DOMRect;
+  } | null>(null);
 
   function createHighlight(color: HighlightColor) {
     if (!selection) return;
@@ -115,11 +121,26 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
     <div ref={scrollRef} className="flex h-full justify-center overflow-auto bg-gray-100 py-4">
       <div className="flex w-full max-w-3xl flex-col gap-4 px-4">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-          <PDFPage key={pageNumber} pdf={pdf} pageNumber={pageNumber} docId={docId} zoom={zoom} />
+          <PDFPage
+            key={pageNumber}
+            pdf={pdf}
+            pageNumber={pageNumber}
+            docId={docId}
+            zoom={zoom}
+            onHighlightClick={(highlight, anchor) => setActivePopover({ highlight, anchor })}
+          />
         ))}
       </div>
       {selection && (
         <HighlightTooltip anchor={selection.anchor} onHighlight={createHighlight} onClose={clear} />
+      )}
+      {activePopover && (
+        <HighlightPopover
+          highlight={activePopover.highlight}
+          docId={docId}
+          anchor={activePopover.anchor}
+          onClose={() => setActivePopover(null)}
+        />
       )}
     </div>
   );
