@@ -17,8 +17,6 @@ import {
   Code,
   Code2,
   Link as LinkIcon,
-  Undo2,
-  Redo2,
   Download,
   Check,
   Loader2,
@@ -202,13 +200,6 @@ export default function TextDocView({
               }}
             >
               <LinkIcon size={16} />
-            </Btn>
-            <Sep />
-            <Btn label="Undo" on={() => editor.chain().focus().undo().run()}>
-              <Undo2 size={16} />
-            </Btn>
-            <Btn label="Redo" on={() => editor.chain().focus().redo().run()}>
-              <Redo2 size={16} />
             </Btn>
           </>
         )}
