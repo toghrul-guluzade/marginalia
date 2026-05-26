@@ -4,12 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { useAnnotationStore } from "../../store/annotationStore";
 import { getCachedThumbnail } from "../../lib/pdfThumbnail";
 import { tagColor } from "../../lib/tagColors";
+import AddTagDropdown from "./AddTagDropdown";
 import type { DocumentRow } from "../../lib/supabase";
 
 interface DocumentCardProps {
   doc: DocumentRow;
+  existingTags: string[];
   onRename: (id: string, title: string) => void;
-  onAddTag: (doc: DocumentRow) => void;
+  onAddTag: (doc: DocumentRow, tag: string) => void;
   onDelete: (doc: DocumentRow) => void;
 }
 
@@ -19,7 +21,7 @@ function formatSize(bytes: number | null): string {
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-export default function DocumentCard({ doc, onRename, onAddTag, onDelete }: DocumentCardProps) {
+export default function DocumentCard({ doc, existingTags, onRename, onAddTag, onDelete }: DocumentCardProps) {
   const navigate = useNavigate();
   const highlights = useAnnotationStore((s) => s.highlights[doc.id]?.length ?? 0);
   const notes = useAnnotationStore((s) => s.stickyNotes[doc.id]?.length ?? 0);
@@ -29,6 +31,7 @@ export default function DocumentCard({ doc, onRename, onAddTag, onDelete }: Docu
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(doc.title);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [tagOpen, setTagOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,7 +89,7 @@ export default function DocumentCard({ doc, onRename, onAddTag, onDelete }: Docu
             </button>
             <button
               className="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
-              onClick={() => { setMenuOpen(false); onAddTag(doc); }}
+              onClick={() => { setMenuOpen(false); setTagOpen(true); }}
             >
               Add tag
             </button>
@@ -97,6 +100,14 @@ export default function DocumentCard({ doc, onRename, onAddTag, onDelete }: Docu
               Delete
             </button>
           </div>
+        )}
+        {tagOpen && (
+          <AddTagDropdown
+            existingTags={existingTags}
+            currentTags={doc.tags ?? []}
+            onAdd={(tag) => onAddTag(doc, tag)}
+            onClose={() => setTagOpen(false)}
+          />
         )}
       </div>
 

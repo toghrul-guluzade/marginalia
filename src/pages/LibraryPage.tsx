@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Search, Upload, LogOut, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth";
 import { useDocuments } from "../hooks/useDocuments";
+import { useAnnotationStore } from "../store/annotationStore";
 import DocumentCard from "../components/library/DocumentCard";
 import {
   isSupabaseConfigured,
@@ -32,6 +33,31 @@ export default function LibraryPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [sortKey, setSortKey] = useState<"lastOpened" | "dateAdded" | "title" | "annotations">(
+    "lastOpened",
+  );
+  const highlightsMap = useAnnotationStore((s) => s.highlights);
+  const stickyNotesMap = useAnnotationStore((s) => s.stickyNotes);
+
+  const sorted = useMemo(() => {
+    const countFor = (id: string) =>
+      (highlightsMap[id]?.length ?? 0) + (stickyNotesMap[id]?.length ?? 0);
+    return [...filtered].sort((a, b) => {
+      switch (sortKey) {
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "dateAdded":
+          return b.created_at.localeCompare(a.created_at);
+        case "annotations":
+          return countFor(b.id) - countFor(a.id);
+        default: {
+          const av = a.last_opened_at ?? a.created_at;
+          const bv = b.last_opened_at ?? b.created_at;
+          return bv.localeCompare(av);
+        }
+      }
+    });
+  }, [filtered, sortKey, highlightsMap, stickyNotesMap]);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -74,9 +100,7 @@ export default function LibraryPage() {
     }
   }
 
-  async function handleAddTag(doc: DocumentRow) {
-    const tag = window.prompt("Add tag")?.trim();
-    if (!tag) return;
+  async function handleAddTag(doc: DocumentRow, tag: string) {
     try {
       await updateDocument(doc.id, { tags: [...new Set([...(doc.tags ?? []), tag])] });
       refresh();
@@ -189,22 +213,41 @@ export default function LibraryPage() {
               <span className="text-sm font-medium">Drop a PDF here or click to upload</span>
             </button>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((doc) => (
-                <DocumentCard
-                  key={doc.id}
-                  doc={doc}
-                  onRename={handleRename}
-                  onAddTag={handleAddTag}
-                  onDelete={handleDelete}
-                />
-              ))}
-              {filtered.length === 0 && (
-                <p className="col-span-full mt-8 text-center text-gray-400">
-                  No documents match your filters.
-                </p>
-              )}
-            </div>
+            <>
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-gray-500">{sorted.length} documents</p>
+                <label className="flex items-center gap-2 text-sm text-gray-500">
+                  Sort by
+                  <select
+                    className="rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-700"
+                    value={sortKey}
+                    onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
+                  >
+                    <option value="lastOpened">Last opened</option>
+                    <option value="dateAdded">Date added</option>
+                    <option value="title">Title A–Z</option>
+                    <option value="annotations">Most annotations</option>
+                  </select>
+                </label>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {sorted.map((doc) => (
+                  <DocumentCard
+                    key={doc.id}
+                    doc={doc}
+                    existingTags={allTags}
+                    onRename={handleRename}
+                    onAddTag={handleAddTag}
+                    onDelete={handleDelete}
+                  />
+                ))}
+                {sorted.length === 0 && (
+                  <p className="col-span-full mt-8 text-center text-gray-400">
+                    No documents match your filters.
+                  </p>
+                )}
+              </div>
+            </>
           )}
 
           {/* Floating upload button (when docs exist) */}

@@ -5,6 +5,8 @@ import PDFViewer, { type PDFViewerHandle, type PageBg } from "../components/pdf/
 import PDFToolbar from "../components/pdf/PDFToolbar";
 import AnnotationSidebar from "../components/annotations/AnnotationSidebar";
 import ShortcutsModal from "../components/ui/ShortcutsModal";
+import AddTagDropdown from "../components/library/AddTagDropdown";
+import { tagColor } from "../lib/tagColors";
 import { useDocumentAnnotations } from "../hooks/useDocumentAnnotations";
 import { useDocumentState } from "../hooks/useDocumentState";
 import {
@@ -29,6 +31,9 @@ export default function ViewerPage() {
   const isDemo = !isSupabaseConfigured || docId === "test";
   const [pdfUrl, setPdfUrl] = useState<string | null>(isDemo ? TEST_PDF_URL : null);
   const [title, setTitle] = useState(isDemo ? TEST_TITLE : "Loading…");
+  const [docTags, setDocTags] = useState<string[]>([]);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [tagOpen, setTagOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Load the real document (signed URL + title) and stamp last_opened_at.
@@ -42,6 +47,7 @@ export default function ViewerPage() {
         if (cancelled) return;
         setPdfUrl(url);
         setTitle(doc.title);
+        setDocTags(doc.tags ?? []);
         updateDocument(docId, { last_opened_at: new Date().toISOString() }).catch(() => {});
       })
       .catch((e) => !cancelled && setLoadError(e instanceof Error ? e.message : "Failed to load"));
@@ -74,6 +80,24 @@ export default function ViewerPage() {
     setPulsingId(id);
     window.setTimeout(() => setPulsingId(null), 1400);
   }, []);
+
+  function saveTitle(next: string) {
+    setTitleEditing(false);
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === title) {
+      setTitle(title);
+      return;
+    }
+    setTitle(trimmed);
+    if (!isDemo) updateDocument(docId, { title: trimmed }).catch(() => {});
+  }
+
+  function addTag(tag: string) {
+    if (docTags.includes(tag)) return;
+    const next = [...docTags, tag];
+    setDocTags(next);
+    if (!isDemo) updateDocument(docId, { tags: next }).catch(() => {});
+  }
 
   const prevPage = useCallback(() => goToPage(currentPage - 1), [currentPage, goToPage]);
   const nextPage = useCallback(() => goToPage(currentPage + 1), [currentPage, goToPage]);
@@ -167,7 +191,62 @@ export default function ViewerPage() {
           >
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="min-w-0 flex-1 truncate text-base font-medium text-gray-800">{title}</h1>
+
+          {titleEditing ? (
+            <input
+              autoFocus
+              className="min-w-0 flex-1 rounded border border-gray-200 px-1 text-base font-medium text-gray-800 focus:border-brand focus:outline-none"
+              defaultValue={title}
+              onBlur={(e) => saveTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveTitle((e.target as HTMLInputElement).value);
+                if (e.key === "Escape") setTitleEditing(false);
+              }}
+            />
+          ) : (
+            <h1
+              className="min-w-0 max-w-[40%] truncate text-base font-medium text-gray-800"
+              title="Click to rename"
+              onClick={() => !isDemo && setTitleEditing(true)}
+            >
+              {title}
+            </h1>
+          )}
+
+          {/* Tag pills + add tag */}
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+            {docTags.map((tag) => {
+              const c = tagColor(tag);
+              return (
+                <span
+                  key={tag}
+                  className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                  style={{ backgroundColor: c.bg, color: c.text }}
+                >
+                  {tag}
+                </span>
+              );
+            })}
+            {!isDemo && (
+              <div className="relative">
+                <button
+                  className="shrink-0 rounded-full border border-dashed border-gray-300 px-2 py-0.5 text-xs text-gray-500 hover:border-brand hover:text-brand"
+                  onClick={() => setTagOpen((v) => !v)}
+                >
+                  + Tag
+                </button>
+                {tagOpen && (
+                  <AddTagDropdown
+                    existingTags={docTags}
+                    currentTags={docTags}
+                    onAdd={addTag}
+                    onClose={() => setTagOpen(false)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
           <button
             className={`rounded p-1.5 ${sidebarOpen ? "bg-brand-light text-brand-dark" : "text-gray-500 hover:bg-gray-100"}`}
             onClick={() => setSidebarOpen((v) => !v)}
