@@ -25,7 +25,6 @@ export default function StickyNote({ note, docId, pageWidth, pageHeight }: Stick
   const [open, setOpen] = useState(!note.content); // brand-new notes open straight away
   const [editing, setEditing] = useState(!note.content);
   const [content, setContent] = useState(note.content);
-  const [hover, setHover] = useState(false);
   const [dragPos, setDragPos] = useState<{ left: number; top: number } | null>(null);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -74,8 +73,6 @@ export default function StickyNote({ note, docId, pageWidth, pageHeight }: Stick
         className="flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border border-black/10 shadow active:cursor-grabbing"
         style={{ backgroundColor: HIGHLIGHT_COLORS[note.color] }}
         onPointerDown={startDrag}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
         onClick={(e) => {
           e.stopPropagation();
           if (movedRef.current) return; // it was a drag, not a click
@@ -91,13 +88,6 @@ export default function StickyNote({ note, docId, pageWidth, pageHeight }: Stick
       >
         <StickyNoteIcon size={13} className="text-black/60" />
       </button>
-
-      {/* Hover preview (only when closed and there is content) */}
-      {hover && !open && !dragPos && note.content && (
-        <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-1 w-48 -translate-x-1/2 whitespace-pre-wrap rounded-lg border border-ink-4 bg-ink-2 px-2.5 py-1.5 text-xs leading-snug text-ghost shadow-xl">
-          {note.content}
-        </div>
-      )}
 
       {/* Card — stays open until the pin is clicked again */}
       {open && !dragPos && (
