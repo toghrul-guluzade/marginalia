@@ -51,7 +51,8 @@ export default function TextDocView({ doc }: { doc: LocalDoc }) {
       Placeholder.configure({ placeholder: "Start writing…" }),
       Markdown.configure({ html: false }),
     ],
-    editorProps: { attributes: { class: "tiptap min-h-[60vh]" } },
+    // min-height fills most of the A4 sheet so the whole page is clickable to focus.
+    editorProps: { attributes: { class: "tiptap min-h-[245mm]" } },
     onUpdate: ({ editor }) => {
       setSaveState("saving");
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
@@ -204,9 +205,12 @@ export default function TextDocView({ doc }: { doc: LocalDoc }) {
         </button>
       </div>
 
-      {/* Editor page */}
-      <div className="min-h-0 flex-1 overflow-auto bg-ink py-6">
-        <div className="mx-auto max-w-3xl rounded bg-cream px-12 py-12 shadow-lg">
+      {/* Editor page — A4 proportions (210 × 297mm) */}
+      <div className="min-h-0 flex-1 overflow-auto bg-ink py-8">
+        <div
+          className="mx-auto rounded-sm bg-cream shadow-xl"
+          style={{ width: "210mm", minHeight: "297mm", padding: "22mm 24mm" }}
+        >
           {loaded ? (
             <EditorContent editor={editor} />
           ) : (
