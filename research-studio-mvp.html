@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0f0e0d;
+    --ink-2: #1c1a18;
+    --ink-3: #2a2824;
+    --ink-4: #3d3a35;
+    --ink-5: #56524c;
+    --paper: #f5f0e8;
+    --paper-2: #ede8df;
+    --paper-3: #e3ddd3;
+    --cream: #faf7f2;
+    --dim: #8a8278;
+    --ghost: #b5b0a8;
+    --rule: rgba(255,255,255,0.07);
+    --rule-light: rgba(0,0,0,0.08);
+
+    --hl-yellow: rgba(255, 213, 79, 0.55);
+    --hl-green:  rgba(100, 200, 140, 0.45);
+    --hl-pink:   rgba(240, 120, 160, 0.45);
+    --hl-blue:   rgba(100, 160, 240, 0.40);
+
+    --hl-yellow-dot: #f59e0b;
+    --hl-green-dot:  #22c55e;
+    --hl-pink-dot:   #ec4899;
+    --hl-blue-dot:   #3b82f6;
+
+    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-sans: 'Geist', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', monospace;
+
+    --sidebar-w: 260px;
+    --toolbar-h: 44px;
+    --annot-w: 300px;
+  }
+
+  html, body { height: 100%; overflow: hidden; background: var(--ink); }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; height: 100vh; font-family: var(--font-sans); color: var(--paper); }
+
+  /* ── LEFT SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0;
+    background: var(--ink-2);
+    border-right: 1px solid var(--rule);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-brand {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--rule);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .brand-mark {
+    width: 28px; height: 28px;
+    background: var(--paper);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 14px; height: 14px; }
+  .brand-name { font-family: var(--font-serif); font-size: 17px; color: var(--paper); letter-spacing: 0.01em; }
+
+  .sidebar-section-label {
+    padding: 16px 20px 6px;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
+    color: var(--dim); text-transform: uppercase; font-family: var(--font-mono);
+  }
+
+  .doc-list { flex: 1; overflow-y: auto; padding: 4px 8px 8px; }
+  .doc-list::-webkit-scrollbar { width: 4px; }
+  .doc-list::-webkit-scrollbar-track { background: transparent; }
+  .doc-list::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 2px; }
+
+  .doc-item {
+    padding: 9px 12px; border-radius: 7px;
+    cursor: pointer; display: flex; align-items: flex-start; gap: 10px;
+    transition: background 0.12s; margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+  .doc-item:hover { background: var(--ink-3); }
+  .doc-item.active { background: var(--ink-3); border-color: var(--rule); }
+  .doc-item.active .doc-item-name { color: var(--cream); }
+
+  .doc-item-icon {
+    width: 28px; height: 34px; flex-shrink: 0;
+    background: var(--ink-4); border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-family: var(--font-mono);
+    color: var(--dim); margin-top: 1px;
+    position: relative; overflow: hidden;
+  }
+  .doc-item-icon::after {
+    content: ''; position: absolute; top: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid; border-width: 0 7px 7px 0;
+    border-color: transparent var(--ink-3) transparent transparent;
+  }
+  .doc-item.active .doc-item-icon { background: var(--ink-5); }
+
+  .doc-item-meta { flex: 1; min-width: 0; }
+  .doc-item-name { font-size: 12.5px; color: var(--ghost); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-item-sub { font-size: 11px; color: var(--ink-5); margin-top: 2px; font-family: var(--font-mono); }
+
+  .doc-item-annot {
+    font-size: 10px; font-family: var(--font-mono);
+    color: var(--dim); flex-shrink: 0; margin-top: 3px;
+    padding: 1px 5px; background: var(--ink-3); border-radius: 3px;
+  }
+  .doc-item.active .doc-item-annot { background: var(--ink-4); color: var(--ghost); }
+
+  .sidebar-upload {
+    padding: 12px 12px;
+    border-top: 1px solid var(--rule);
+  }
+  .upload-btn {
+    width: 100%; padding: 9px;
+    background: transparent; border: 1px dashed var(--ink-4);
+    border-radius: 7px; color: var(--dim);
+    font-size: 12px; font-family: var(--font-sans);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: all 0.15s;
+  }
+  .upload-btn:hover { border-color: var(--ink-5); color: var(--ghost); background: var(--ink-3); }
+  .upload-btn svg { width: 14px; height: 14px; }
+
+  /* ── MAIN AREA ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    height: var(--toolbar-h); flex-shrink: 0;
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--rule);
+    display: flex; align-items: center; padding: 0 16px; gap: 4px;
+  }
+
+  .toolbar-title {
+    font-family: var(--font-serif); font-size: 14px;
+    color: var(--paper); flex: 1; margin: 0 12px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-style: italic;
+  }
+
+  .tool-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid transparent; border-radius: 6px;
+    cursor: pointer; background: transparent; color: var(--dim);
+    transition: all 0.12s; flex-shrink: 0;
+  }
+  .tool-btn:hover { color: var(--paper); background: var(--ink-3); border-color: var(--rule); }
+  .tool-btn.active { color: var(--paper); background: var(--ink-4); border-color: var(--rule); }
+  .tool-btn svg { width: 15px; height: 15px; pointer-events: none; }
+
+  .tool-sep { width: 1px; height: 18px; background: var(--rule); margin: 0 6px; flex-shrink: 0; }
+
+  .color-swatch {
+    width: 16px; height: 16px; border-radius: 50%;
+    cursor: pointer; border: 2px solid transparent;
+    transition: transform 0.12s, border-color 0.12s;
+    flex-shrink: 0;
+  }
+  .color-swatch:hover { transform: scale(1.2); }
+  .color-swatch.sel { border-color: var(--paper); transform: scale(1.1); }
+  .swatch-y { background: #f59e0b; }
+  .swatch-g { background: #22c55e; }
+  .swatch-p { background: #ec4899; }
+  .swatch-b { background: #3b82f6; }
+
+  .mode-badge {
+    font-size: 10.5px; font-family: var(--font-mono);
+    padding: 3px 8px; border-radius: 4px;
+    background: var(--ink-3); color: var(--ghost);
+    border: 1px solid var(--rule); letter-spacing: 0.03em;
+    flex-shrink: 0;
+  }
+  .mode-badge.hl { background: rgba(245,158,11,0.15); color: #f59e0b; border-color: rgba(245,158,11,0.3); }
+
+  .page-nav { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
+  .page-nav-num {
+    font-size: 11px; font-family: var(--font-mono);
+    color: var(--dim); min-width: 50px; text-align: center;
+  }
+
+  /* ── VIEWER + ANNOT PANEL ── */
+  .viewer-area { flex: 1; display: flex; overflow: hidden; }
+
+  /* ── PDF VIEWER ── */
+  .pdf-scroll {
+    flex: 1; overflow-y: auto;
+    background: var(--ink); padding: 28px 0;
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+  }
+  .pdf-scroll::-webkit-scrollbar { width: 6px; }
+  .pdf-scroll::-webkit-scrollbar-track { background: transparent; }
+  .pdf-scroll::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 3px; }
+
+  .pdf-page-wrap {
+    position: relative; width: 620px;
+    background: var(--cream); color: #1a1a1a;
+    border-radius: 3px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .pdf-page-inner { padding: 52px 60px; }
+  .pdf-page-num {
+    position: absolute; bottom: 10px; right: 14px;
+    font-size: 10px; font-family: var(--font-mono); color: #aaa;
+  }
+
+  /* Fake PDF content styles */
+  .pdf-h1 { font-family: var(--font-serif); font-size: 22px; color: #111; margin-bottom: 8px; line-height: 1.3; }
+  .pdf-h2 { font-family: var(--font-serif); font-size: 16px; color: #222; margin: 24px 0 8px; font-style: italic; }
+  .pdf-byline { font-size: 11px; color: #888; font-family: var(--font-mono); margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
+  .pdf-p { font-size: 13px; line-height: 1.8; color: #2a2a2a; margin-bottom: 14px; font-family: Georgia, serif; }
+  .pdf-abstract { font-size: 12px; line-height: 1.75; color: #444; padding: 16px 20px; background: #f0ece4; border-left: 3px solid #ccc; margin-bottom: 24px; font-family: Georgia, serif; border-radius: 0 4px 4px 0; }
+  .pdf-col-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+
+  /* ── HIGHLIGHTS ── */
+  mark {
+    border-radius: 2px; padding: 0 1px;
+    cursor: pointer; transition: filter 0.1s;
+    position: relative;
+  }
+  mark:hover { filter: brightness(1.15); }
+  mark.hl-y { background: var(--hl-yellow); }
+  mark.hl-g { background: var(--hl-green); }
+  mark.hl-p { background: var(--hl-pink); }
+  mark.hl-b { background: var(--hl-blue); }
+
+  /* note pin */
+  .note-pin {
+    position: absolute; width: 20px; height: 20px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-family: var(--font-mono); font-weight: 500;
+    cursor: pointer; z-index: 10; transform: translate(-50%, -50%);
+    border: 2px solid rgba(255,255,255,0.6);
+    transition: transform 0.12s;
+  }
+  .note-pin:hover { transform: translate(-50%, -50%) scale(1.2); }
+  .note-pin.pin-y { background: #f59e0b; color: #1a1a1a; }
+  .note-pin.pin-g { background: #22c55e; color: #1a1a1a; }
+
+  /* ── ANNOTATION SIDEBAR ── */
+  .annot-sidebar {
+    width: var(--annot-w); flex-shrink: 0;
+    background: var(--ink-2);
+    border-left: 1px solid var(--rule);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    transition: width 0.2s ease, opacity 0.2s ease;
+  }
+  .annot-sidebar.hidden { width: 0; opacity: 0; pointer-events: none; }
+
+  .annot-header {
+    padding: 0 16px;
+    height: var(--toolbar-h); flex-shrink: 0;
+    border-bottom: 1px solid var(--rule);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .annot-header-title {
+    font-size: 11px; font-family: var(--font-mono);
+    font-weight: 500; color: var(--ghost);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    flex: 1;
+  }
+  .annot-count {
+    font-size: 10px; font-family: var(--font-mono);
+    color: var(--dim); padding: 2px 6px;
+    background: var(--ink-3); border-radius: 3px;
+  }
+
+  .annot-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .annot-search input {
+    width: 100%; background: var(--ink-3);
+    border: 1px solid var(--rule); border-radius: 6px;
+    padding: 6px 10px; font-size: 12px;
+    font-family: var(--font-sans); color: var(--paper);
+    outline: none;
+  }
+  .annot-search input::placeholder { color: var(--ink-5); }
+  .annot-search input:focus { border-color: var(--ink-5); }
+
+  .annot-filters {
+    padding: 8px 12px; display: flex; gap: 5px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--rule);
+  }
+  .filter-chip {
+    font-size: 10.5px; font-family: var(--font-mono);
+    padding: 3px 8px; border-radius: 4px; cursor: pointer;
+    background: var(--ink-3); color: var(--dim);
+    border: 1px solid transparent;
+    transition: all 0.1s;
+  }
+  .filter-chip:hover { color: var(--ghost); }
+  .filter-chip.active { background: var(--ink-4); color: var(--paper); border-color: var(--rule); }
+
+  .annot-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .annot-list::-webkit-scrollbar { width: 4px; }
+  .annot-list::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 2px; }
+
+  .annot-card {
+    padding: 10px 12px; border-radius: 7px;
+    border: 1px solid var(--rule); background: var(--ink-3);
+    margin-bottom: 6px; cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .annot-card:hover { background: var(--ink-4); border-color: var(--ink-5); }
+
+  .annot-card-header { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .annot-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .annot-type { font-size: 10px; font-family: var(--font-mono); color: var(--dim); }
+  .annot-page { font-size: 10px; font-family: var(--font-mono); color: var(--ink-5); margin-left: auto; }
+
+  .annot-text {
+    font-size: 12px; color: var(--ghost); line-height: 1.5;
+    font-family: Georgia, serif; font-style: italic;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .annot-note {
+    font-size: 11px; color: var(--dim); margin-top: 6px;
+    padding-top: 6px; border-top: 1px solid var(--rule);
+    font-family: var(--font-sans); line-height: 1.5;
+  }
+
+  .annot-footer {
+    padding: 10px 12px;
+    border-top: 1px solid var(--rule);
+  }
+  .export-btn {
+    width: 100%; padding: 8px;
+    background: transparent; border: 1px solid var(--ink-4);
+    border-radius: 6px; color: var(--dim);
+    font-size: 11.5px; font-family: var(--font-mono);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.15s; letter-spacing: 0.04em;
+  }
+  .export-btn:hover { border-color: var(--ink-5); color: var(--ghost); background: var(--ink-3); }
+  .export-btn svg { width: 13px; height: 13px; }
+
+  /* ── NOTE POPOVER ── */
+  .popover {
+    position: fixed; z-index: 100;
+    background: var(--ink-2); border: 1px solid var(--ink-4);
+    border-radius: 10px; padding: 14px;
+    width: 260px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: none;
+  }
+  .popover.visible { display: block; animation: popIn 0.15s ease; }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+  .popover-quote {
+    font-size: 12px; font-family: Georgia, serif; font-style: italic;
+    color: var(--ghost); line-height: 1.6; margin-bottom: 10px;
+    padding-left: 10px; border-left: 2px solid var(--ink-4);
+  }
+  .popover-note-area {
+    width: 100%; background: var(--ink-3);
+    border: 1px solid var(--ink-4); border-radius: 6px;
+    padding: 8px 10px; font-size: 12px;
+    font-family: var(--font-sans); color: var(--paper);
+    resize: none; outline: none; line-height: 1.6;
+    min-height: 70px;
+  }
+  .popover-note-area::placeholder { color: var(--ink-5); }
+  .popover-note-area:focus { border-color: var(--ink-5); }
+  .popover-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .popover-save {
+    flex: 1; padding: 7px; background: var(--paper);
+    border: none; border-radius: 6px; font-size: 12px;
+    font-family: var(--font-mono); color: var(--ink); cursor: pointer;
+    font-weight: 500; transition: opacity 0.1s;
+  }
+  .popover-save:hover { opacity: 0.85; }
+  .popover-del {
+    padding: 7px 12px; background: transparent;
+    border: 1px solid var(--ink-4); border-radius: 6px;
+    font-size: 12px; font-family: var(--font-mono);
+    color: var(--dim); cursor: pointer; transition: all 0.1s;
+  }
+  .popover-del:hover { border-color: #ef4444; color: #ef4444; }
+
+  /* ── HIGHLIGHT TOOLTIP ── */
+  .hl-tooltip {
+    position: fixed; z-index: 200;
+    background: var(--ink-2); border: 1px solid var(--ink-4);
+    border-radius: 8px; padding: 6px 8px;
+    display: none; gap: 6px; align-items: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+  .hl-tooltip.visible { display: flex; animation: popIn 0.1s ease; }
+  .hl-pick {
+    width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+    transition: transform 0.1s; border: 2px solid transparent;
+  }
+  .hl-pick:hover { transform: scale(1.2); }
+  .hl-sep { width: 1px; height: 16px; background: var(--rule); }
+  .hl-note-btn {
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--dim); border-radius: 4px;
+    transition: color 0.1s;
+  }
+  .hl-note-btn:hover { color: var(--paper); }
+  .hl-note-btn svg { width: 13px; height: 13px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--ink-2); border: 1px solid var(--ink-4);
+    padding: 9px 16px; border-radius: 8px;
+    font-size: 12px; font-family: var(--font-mono); color: var(--ghost);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none; z-index: 300; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* selection styling */
+  ::selection { background: rgba(245,158,11,0.3); }
+
+  /* scrollbar */
+  * { scrollbar-width: thin; scrollbar-color: var(--ink-4) transparent; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 14 14" fill="none">
+          <rect x="2" y="1" width="8" height="10" rx="1" stroke="#0f0e0d" stroke-width="1.5"/>
+          <line x1="4" y1="4.5" x2="8" y2="4.5" stroke="#0f0e0d" stroke-width="1"/>
+          <line x1="4" y1="6.5" x2="8" y2="6.5" stroke="#0f0e0d" stroke-width="1"/>
+          <line x1="4" y1="8.5" x2="7" y2="8.5" stroke="#0f0e0d" stroke-width="1"/>
+        </svg>
+      </div>
+      <span class="brand-name">Research Studio</span>
+    </div>
+
+    <div class="sidebar-section-label">Library</div>
+
+    <div class="doc-list">
+      <div class="doc-item active" onclick="switchDoc(this, 0)">
+        <div class="doc-item-icon">PDF</div>
+        <div class="doc-item-meta">
+          <div class="doc-item-name">VC Market Analysis 2025</div>
+          <div class="doc-item-sub">24 pages · 2.1 MB</div>
+        </div>
+        <div class="doc-item-annot" id="doc-annot-0">4</div>
+      </div>
+      <div class="doc-item" onclick="switchDoc(this, 1)">
+        <div class="doc-item-icon">PDF</div>
+        <div class="doc-item-meta">
+          <div class="doc-item-name">Emerging Markets Report Q1</div>
+          <div class="doc-item-sub">41 pages · 4.7 MB</div>
+        </div>
+        <div class="doc-item-annot" id="doc-annot-1">0</div>
+      </div>
+      <div class="doc-item" onclick="switchDoc(this, 2)">
+        <div class="doc-item-icon">PDF</div>
+        <div class="doc-item-meta">
+          <div class="doc-item-name">Dealflow Benchmarks</div>
+          <div class="doc-item-sub">18 pages · 1.3 MB</div>
+        </div>
+        <div class="doc-item-annot" id="doc-annot-2">0</div>
+      </div>
+      <div class="doc-item" onclick="switchDoc(this, 3)">
+        <div class="doc-item-icon">PDF</div>
+        <div class="doc-item-meta">
+          <div class="doc-item-name">Seeder Competitor Research</div>
+          <div class="doc-item-sub">9 pages · 0.8 MB</div>
+        </div>
+        <div class="doc-item-annot" id="doc-annot-3">0</div>
+      </div>
+    </div>
+
+    <div class="sidebar-upload">
+      <button class="upload-btn" onclick="showToast('Drop a PDF anywhere to upload')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Upload PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <!-- tools -->
+      <button class="tool-btn" title="Select" id="btn-select" onclick="setMode('select')" style="color:var(--paper); background:var(--ink-3); border-color:var(--rule);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 4 7 18 3-7 7-3z"/></svg>
+      </button>
+      <button class="tool-btn" title="Highlight mode (H)" id="btn-highlight" onclick="setMode('highlight')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l-6 6v3h3l6-6M9 11l4-4M9 11l4-4m4-4-4 4m0 0 4-4M13 7l4-4 4 4-4 4z"/></svg>
+      </button>
+      <button class="tool-btn" title="Note mode (N)" id="btn-note" onclick="setMode('note')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+
+      <div class="tool-sep"></div>
+
+      <!-- color swatches -->
+      <div class="color-swatch swatch-y sel" id="sw-y" onclick="selectColor('y')" title="Yellow"></div>
+      <div class="color-swatch swatch-g" id="sw-g" onclick="selectColor('g')" title="Green"></div>
+      <div class="color-swatch swatch-p" id="sw-p" onclick="selectColor('p')" title="Pink"></div>
+      <div class="color-swatch swatch-b" id="sw-b" onclick="selectColor('b')" title="Blue"></div>
+
+      <div class="tool-sep"></div>
+
+      <span class="mode-badge" id="mode-badge">select</span>
+
+      <span class="toolbar-title" id="toolbar-title">VC Market Analysis 2025.pdf</span>
+
+      <!-- zoom -->
+      <button class="tool-btn" title="Zoom out" onclick="zoom(-1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <span style="font-size:11px; font-family:var(--font-mono); color:var(--dim); min-width:34px; text-align:center;" id="zoom-label">100%</span>
+      <button class="tool-btn" title="Zoom in" onclick="zoom(1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="11" y1="8" x2="11" y2="14"/></svg>
+      </button>
+
+      <div class="tool-sep"></div>
+
+      <!-- sidebar toggle -->
+      <button class="tool-btn active" title="Toggle annotations (S)" id="btn-sidebar" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+      </button>
+    </div>
+
+    <!-- VIEWER + ANNOTATION PANEL -->
+    <div class="viewer-area">
+
+      <!-- PDF SCROLL AREA -->
+      <div class="pdf-scroll" id="pdf-scroll">
+
+        <!-- PAGE 1 -->
+        <div class="pdf-page-wrap" id="page-1" data-page="1">
+          <div class="pdf-page-inner">
+            <div class="pdf-h1">Venture Capital in Emerging Markets:<br>Deal Activity and Valuation Trends 2025</div>
+            <div class="pdf-byline">Global Emerging Markets Research Group · March 2025 · Vol. 12 · DOI 10.xxxx/gemrg.2025.03</div>
+
+            <div class="pdf-abstract">
+              <strong>Abstract.</strong> This report analyzes venture capital deployment patterns across emerging market regions for fiscal year 2025, with particular attention to deal velocity, valuation compression at seed stage, and the structural challenges facing fund managers operating across multiple geographies. Data sourced from 847 disclosed transactions across MENA, Sub-Saharan Africa, and Southeast Asia.
+            </div>
+
+            <div class="pdf-h2">1. Introduction</div>
+            <div class="pdf-p">
+              Early-stage venture activity in emerging markets continued its post-pandemic recovery through 2025, albeit with significant regional divergence. <mark class="hl-y" id="hl-1" onclick="openPopover(event,'hl-1','Early-stage VC activity grew by 34% year-over-year','Relates to Seeder\'s target market — MENA growth especially relevant')">Early-stage VC activity grew by 34% year-over-year, driven primarily by MENA and Southeast Asia.</mark> The Sub-Saharan Africa cohort showed flat absolute deal count but improving capital efficiency ratios across portfolio companies.
+            </div>
+            <div class="pdf-p">
+              Aggregate fund deployment reached $4.2 billion across the tracked cohort, representing a 22% increase from the prior period. First-check sizes remained compressed relative to developed market equivalents, with <mark class="hl-g" id="hl-2" onclick="openPopover(event,'hl-2','median pre-money valuation at seed stage was $4.2M','Useful benchmark for Seeder\'s scoring model calibration.')">median pre-money valuations at seed stage settling at $4.2M, a slight decline from $4.8M in 2023.</mark>
+            </div>
+
+            <div class="pdf-h2">2. Regional Breakdown</div>
+            <div class="pdf-col-2">
+              <div>
+                <div class="pdf-p"><strong>MENA.</strong> The MENA region accounted for 38% of all emerging market deals tracked, with the UAE and Saudi Arabia representing the two largest individual markets by deployed capital. Cross-border deal participation increased notably, with 44% of MENA deals featuring at least one non-regional co-investor.</div>
+              </div>
+              <div>
+                <div class="pdf-p"><strong>Southeast Asia.</strong> Indonesia and Vietnam led deal count growth. The region saw a pronounced shift toward B2B software and fintech infrastructure, mirroring patterns observed in developed markets roughly 36 months prior. Average time-to-close decreased by 18 days year-over-year.</div>
+              </div>
+            </div>
+
+            <div style="position:relative; display:inline;">
+              <div class="note-pin pin-y" style="top:0; left:0; position:relative; display:inline-flex; margin-left:8px; vertical-align:middle;" onclick="openNotePopover(event,'Deal flow bottleneck note','Deal flow velocity remains a key bottleneck for fund managers operating across multiple geographies simultaneously. This is exactly the problem Seeder addresses.')" title="Sticky note">1</div>
+            </div>
+            <div class="pdf-p" style="display:inline;"> <mark class="hl-p" id="hl-3" onclick="openPopover(event,'hl-3','Deal flow velocity remains the primary operational bottleneck','This is exactly the Seeder pain point. Cross-reference with p.14 methodology section.')">Deal flow velocity remains the primary operational bottleneck</mark> cited by fund managers operating across multiple geographies simultaneously, appearing in 73% of surveyed fund manager interviews as a top-three constraint on portfolio construction.</div>
+
+          </div>
+          <div class="pdf-page-num">1</div>
+        </div>
+
+        <!-- PAGE 2 -->
+        <div class="pdf-page-wrap" id="page-2" data-page="2">
+          <div class="pdf-page-inner">
+            <div class="pdf-h2">3. Valuation Methodology and Data Quality</div>
+            <div class="pdf-p">
+              Valuation data in emerging markets remains structurally opaque compared to developed market equivalents. Disclosed rounds represent an estimated 31–44% of actual activity, with the disclosure gap widest in Sub-Saharan Africa where regulatory reporting requirements are least standardized. Our methodology employs a three-stage adjustment model to account for selection bias in the disclosed dataset.
+            </div>
+            <div class="pdf-p">
+              The adjustment factors applied are: (1) a disclosure probability weight derived from market-level regulatory transparency indices, (2) a recency correction for deals disclosed with a reporting lag exceeding 90 days, and (3) a deal-size normalization to account for currency fluctuation effects on USD-denominated comparisons across the 18-month window.
+            </div>
+
+            <div class="pdf-h2">4. Investor Behavior and Portfolio Construction</div>
+            <div class="pdf-p">
+              <mark class="hl-b" id="hl-4" onclick="openPopover(event,'hl-4','Data room quality was cited as affecting close rates in 61% of surveyed deals','Directly relevant to Seeder\'s built-in data room feature.')">Data room quality and completeness was cited as a factor affecting close rates in 61% of surveyed deals, with fund managers reporting an average of 2.3 revision cycles before final investment committee approval.</mark> This friction is disproportionately higher in markets where standardized disclosure templates are not yet industry norm.
+            </div>
+            <div class="pdf-p">
+              Portfolio construction cadence varies significantly by fund size. Managers with AUM below $50M reported median investment cadences of 8–12 deals annually, while the $50M–$150M cohort averaged 14–22 deals, suggesting meaningful operational scaling challenges as funds cross the $50M threshold.
+            </div>
+            <div class="pdf-p">
+              The data suggests that proprietary deal origination networks account for 67% of first-check investments in the cohort, compared to 48% in comparable developed market studies from the same period. This outsized reliance on network-driven sourcing underscores the importance of systematic pipeline management tools for emerging market funds.
+            </div>
+
+            <div class="pdf-h2">5. Conclusions</div>
+            <div class="pdf-p">
+              The emerging markets VC landscape in 2025 presents a picture of structural opportunity constrained by operational friction. Capital deployment is growing, valuations are rational, and regional ecosystems are maturing. The primary limiting factor is not capital availability but the operational infrastructure supporting deal evaluation, portfolio monitoring, and LP reporting at scale.
+            </div>
+          </div>
+          <div class="pdf-page-num">2</div>
+        </div>
+
+      </div><!-- end pdf-scroll -->
+
+      <!-- ANNOTATION SIDEBAR -->
+      <div class="annot-sidebar" id="annot-sidebar">
+        <div class="annot-header">
+          <span class="annot-header-title">Annotations</span>
+          <span class="annot-count" id="annot-count">4</span>
+        </div>
+
+        <div class="annot-search">
+          <input type="text" placeholder="Search annotations..." id="annot-search-input" oninput="filterAnnotations(this.value)">
+        </div>
+
+        <div class="annot-filters">
+          <div class="filter-chip active" onclick="setFilter(this,'all')">All</div>
+          <div class="filter-chip" onclick="setFilter(this,'highlight')">Highlights</div>
+          <div class="filter-chip" onclick="setFilter(this,'note')">Notes</div>
+          <div class="filter-chip" style="display:flex;align-items:center;gap:4px;" onclick="setFilter(this,'y')">
+            <span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;"></span>
+          </div>
+          <div class="filter-chip" style="display:flex;align-items:center;gap:4px;" onclick="setFilter(this,'g')">
+            <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;"></span>
+          </div>
+          <div class="filter-chip" style="display:flex;align-items:center;gap:4px;" onclick="setFilter(this,'p')">
+            <span style="width:7px;height:7px;border-radius:50%;background:#ec4899;"></span>
+          </div>
+          <div class="filter-chip" style="display:flex;align-items:center;gap:4px;" onclick="setFilter(this,'b')">
+            <span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;"></span>
+          </div>
+        </div>
+
+        <div class="annot-list" id="annot-list">
+          <!-- populated by JS -->
+        </div>
+
+        <div class="annot-footer">
+          <button class="export-btn" onclick="exportMarkdown()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export as Markdown
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- HIGHLIGHT TOOLTIP -->
+<div class="hl-tooltip" id="hl-tooltip">
+  <div class="hl-pick" style="background:#f59e0b;" onclick="applyHighlight('y')" title="Yellow"></div>
+  <div class="hl-pick" style="background:#22c55e;" onclick="applyHighlight('g')" title="Green"></div>
+  <div class="hl-pick" style="background:#ec4899;" onclick="applyHighlight('p')" title="Pink"></div>
+  <div class="hl-pick" style="background:#3b82f6;" onclick="applyHighlight('b')" title="Blue"></div>
+  <div class="hl-sep"></div>
+  <div class="hl-note-btn" onclick="applyHighlight(activeColor, true)" title="Add note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  </div>
+</div>
+
+<!-- HIGHLIGHT POPOVER -->
+<div class="popover" id="popover">
+  <div class="popover-quote" id="popover-quote"></div>
+  <textarea class="popover-note-area" id="popover-note" placeholder="Add a note… (Enter to save)"></textarea>
+  <div class="popover-actions">
+    <button class="popover-save" onclick="savePopover()">Save note</button>
+    <button class="popover-del" onclick="deleteHighlight()">Delete</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let mode = 'select';
+let activeColor = 'y';
+let sidebarOpen = true;
+let currentPopoverId = null;
+let zoomLevel = 100;
+const zoomLevels = [75, 100, 125, 150];
+let zoomIdx = 1;
+
+const dotColors = { y:'#f59e0b', g:'#22c55e', p:'#ec4899', b:'#3b82f6' };
+const colorNames = { y:'yellow', g:'green', p:'pink', b:'blue' };
+
+let annotations = [
+  { id:'hl-1', type:'highlight', color:'y', page:1, text:'Early-stage VC activity grew by 34% year-over-year, driven primarily by MENA and Southeast Asia.', note:'Relates to Seeder\'s target market — MENA growth especially relevant' },
+  { id:'hl-2', type:'highlight', color:'g', page:1, text:'median pre-money valuations at seed stage settling at $4.2M, a slight decline from $4.8M in 2023.', note:'Useful benchmark for Seeder\'s scoring model calibration.' },
+  { id:'hl-3', type:'highlight', color:'p', page:1, text:'Deal flow velocity remains the primary operational bottleneck', note:'This is exactly the Seeder pain point. Cross-reference with p.14 methodology section.' },
+  { id:'hl-4', type:'highlight', color:'b', page:2, text:'Data room quality and completeness was cited as a factor affecting close rates in 61% of surveyed deals', note:'Directly relevant to Seeder\'s built-in data room feature.' },
+];
+
+let filteredAnnotations = [...annotations];
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+renderAnnotationList();
+
+// ── MODE ──────────────────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  ['select','highlight','note'].forEach(n => {
+    const btn = document.getElementById('btn-'+n);
+    if(btn) {
+      btn.style.color = n===m ? 'var(--paper)' : '';
+      btn.style.background = n===m ? 'var(--ink-3)' : '';
+      btn.style.borderColor = n===m ? 'var(--rule)' : '';
+    }
+  });
+  const badge = document.getElementById('mode-badge');
+  badge.textContent = m;
+  badge.className = 'mode-badge' + (m==='highlight' ? ' hl' : '');
+
+  document.getElementById('pdf-scroll').style.cursor =
+    m==='note' ? 'crosshair' : m==='highlight' ? 'text' : 'default';
+  hidePopover();
+  hideTooltip();
+}
+
+// ── COLOR ─────────────────────────────────────────────────────────────────
+function selectColor(c) {
+  activeColor = c;
+  ['y','g','p','b'].forEach(x => {
+    document.getElementById('sw-'+x).classList.toggle('sel', x===c);
+  });
+}
+
+// ── SIDEBAR ──────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('annot-sidebar').classList.toggle('hidden', !sidebarOpen);
+  document.getElementById('btn-sidebar').classList.toggle('active', sidebarOpen);
+}
+
+// ── ZOOM ─────────────────────────────────────────────────────────────────
+function zoom(dir) {
+  zoomIdx = Math.max(0, Math.min(zoomLevels.length-1, zoomIdx+dir));
+  zoomLevel = zoomLevels[zoomIdx];
+  document.getElementById('zoom-label').textContent = zoomLevel+'%';
+  const scale = zoomLevel/100;
+  document.querySelectorAll('.pdf-page-wrap').forEach(p => {
+    p.style.width = (620*scale)+'px';
+    p.style.transform = `scale(${scale})`;
+    p.style.transformOrigin = 'top center';
+    p.style.marginBottom = scale>1 ? ((620*(scale-1))/2+20)+'px' : '0';
+  });
+}
+
+// ── TEXT SELECTION → TOOLTIP ──────────────────────────────────────────────
+document.addEventListener('mouseup', (e) => {
+  if(e.target.closest('#hl-tooltip') || e.target.closest('#popover')) return;
+  if(mode !== 'highlight') return;
+
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed || sel.toString().trim().length < 3) {
+    hideTooltip(); return;
+  }
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  const tip = document.getElementById('hl-tooltip');
+  tip.style.left = (rect.left + rect.width/2 - 80)+'px';
+  tip.style.top = (rect.top - 46)+'px';
+  tip.classList.add('visible');
+});
+
+document.addEventListener('mousedown', (e) => {
+  if(!e.target.closest('#hl-tooltip') && !e.target.closest('#popover') && !e.target.closest('mark')) {
+    hideTooltip();
+    hidePopover();
+  }
+});
+
+function hideTooltip() { document.getElementById('hl-tooltip').classList.remove('visible'); }
+function hidePopover() {
+  document.getElementById('popover').classList.remove('visible');
+  currentPopoverId = null;
+}
+
+// ── APPLY HIGHLIGHT ────────────────────────────────────────────────────────
+function applyHighlight(color, withNote=false) {
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed) return;
+  const text = sel.toString().trim();
+  if(text.length < 3) return;
+
+  const id = 'hl-dyn-' + Date.now();
+
+  try {
+    const range = sel.getRangeAt(0);
+    const mark = document.createElement('mark');
+    mark.className = 'hl-'+color;
+    mark.id = id;
+    mark.setAttribute('onclick', `openPopover(event,'${id}','${text.replace(/'/g,"\\'")}','')`);
+    range.surroundContents(mark);
+    sel.removeAllRanges();
+  } catch(e) {
+    showToast('Select within a single paragraph to highlight');
+    sel.removeAllRanges();
+    hideTooltip();
+    return;
+  }
+
+  const annotation = { id, type:'highlight', color, page:1, text, note:'' };
+  annotations.unshift(annotation);
+  filteredAnnotations = [...annotations];
+  renderAnnotationList();
+  updateAnnotCount();
+  hideTooltip();
+  showToast('Highlight added');
+  setMode('select');
+
+  if(withNote) {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if(el) openPopover({ clientX: el.getBoundingClientRect().left, clientY: el.getBoundingClientRect().top }, id, text, '');
+    }, 100);
+  }
+}
+
+// ── POPOVER ───────────────────────────────────────────────────────────────
+function openPopover(e, id, text, note) {
+  e.stopPropagation && e.stopPropagation();
+  currentPopoverId = id;
+  document.getElementById('popover-quote').textContent = '\u201c' + text.slice(0,120) + (text.length>120?'\u2026':'') + '\u201d';
+  document.getElementById('popover-note').value = note || '';
+
+  const pop = document.getElementById('popover');
+  const x = Math.min(e.clientX + 10, window.innerWidth - 280);
+  const y = Math.min(e.clientY + 10, window.innerHeight - 200);
+  pop.style.left = x+'px';
+  pop.style.top = y+'px';
+  pop.classList.add('visible');
+
+  setTimeout(() => document.getElementById('popover-note').focus(), 100);
+}
+
+function openNotePopover(e, title, content) {
+  e.stopPropagation && e.stopPropagation();
+  openPopover(e, 'sticky-'+Date.now(), content, '');
+  document.getElementById('popover-quote').textContent = '\uD83D\uDCCC ' + title;
+}
+
+document.getElementById('popover-note').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); savePopover(); }
+  if(e.key === 'Escape') hidePopover();
+});
+
+function savePopover() {
+  if(!currentPopoverId) return;
+  const note = document.getElementById('popover-note').value.trim();
+  const ann = annotations.find(a => a.id === currentPopoverId);
+  if(ann) { ann.note = note; renderAnnotationList(); }
+  hidePopover();
+  showToast('Note saved');
+}
+
+function deleteHighlight() {
+  if(!currentPopoverId) return;
+  const el = document.getElementById(currentPopoverId);
+  if(el) {
+    const parent = el.parentNode;
+    while(el.firstChild) parent.insertBefore(el.firstChild, el);
+    parent.removeChild(el);
+  }
+  annotations = annotations.filter(a => a.id !== currentPopoverId);
+  filteredAnnotations = annotations.filter(a => a.id !== currentPopoverId);
+  renderAnnotationList();
+  updateAnnotCount();
+  hidePopover();
+  showToast('Highlight removed');
+}
+
+// ── ANNOTATION LIST ────────────────────────────────────────────────────────
+function renderAnnotationList() {
+  const list = document.getElementById('annot-list');
+  if(filteredAnnotations.length === 0) {
+    list.innerHTML = `<div style="padding:24px 16px;text-align:center;color:var(--dim);font-size:12px;font-family:var(--font-mono);">No annotations yet.<br><span style="opacity:0.6;">Select text to highlight.</span></div>`;
+    return;
+  }
+  list.innerHTML = filteredAnnotations.map(a => `
+    <div class="annot-card" onclick="scrollToAnnotation('${a.id}')">
+      <div class="annot-card-header">
+        <div class="annot-dot" style="background:${dotColors[a.color]||'#888'}"></div>
+        <span class="annot-type">${a.type}</span>
+        <span class="annot-page">p.${a.page}</span>
+      </div>
+      <div class="annot-text">${escHtml(a.text)}</div>
+      ${a.note ? `<div class="annot-note">${escHtml(a.note)}</div>` : ''}
+    </div>
+  `).join('');
+  document.getElementById('annot-count').textContent = filteredAnnotations.length;
+}
+
+function scrollToAnnotation(id) {
+  const el = document.getElementById(id);
+  if(el) {
+    el.scrollIntoView({ behavior:'smooth', block:'center' });
+    el.style.outline = '2px solid rgba(255,255,255,0.4)';
+    el.style.outlineOffset = '3px';
+    setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = ''; }, 1200);
+  }
+}
+
+function filterAnnotations(q) {
+  q = q.toLowerCase();
+  filteredAnnotations = annotations.filter(a =>
+    a.text.toLowerCase().includes(q) || (a.note||'').toLowerCase().includes(q)
+  );
+  renderAnnotationList();
+}
+
+function setFilter(el, f) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  if(f==='all') filteredAnnotations = [...annotations];
+  else if(f==='highlight' || f==='note') filteredAnnotations = annotations.filter(a=>a.type===f);
+  else filteredAnnotations = annotations.filter(a=>a.color===f);
+  renderAnnotationList();
+}
+
+function updateAnnotCount() {
+  document.getElementById('annot-count').textContent = annotations.length;
+  const activeDoc = document.querySelector('.doc-item.active .doc-item-annot');
+  if(activeDoc) activeDoc.textContent = annotations.length;
+}
+
+// ── DOC SWITCH ────────────────────────────────────────────────────────────
+const docTitles = ['VC Market Analysis 2025.pdf','Emerging Markets Report Q1.pdf','Dealflow Benchmarks.pdf','Seeder Competitor Research.pdf'];
+function switchDoc(el, idx) {
+  document.querySelectorAll('.doc-item').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('toolbar-title').textContent = docTitles[idx];
+  if(idx !== 0) {
+    document.getElementById('pdf-scroll').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--dim);font-family:var(--font-mono);font-size:12px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--ink-4)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>${docTitles[idx]}</span>
+        <span style="opacity:0.5;">No annotations yet</span>
+      </div>`;
+    annotations = [];
+    filteredAnnotations = [];
+    renderAnnotationList();
+  } else {
+    location.reload();
+  }
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────
+function exportMarkdown() {
+  if(annotations.length === 0) { showToast('No annotations to export'); return; }
+  const title = document.getElementById('toolbar-title').textContent;
+  const byPage = {};
+  annotations.forEach(a => { (byPage[a.page]||(byPage[a.page]=[])).push(a); });
+  let md = `# Annotations: ${title}\n\n`;
+  Object.keys(byPage).sort((a,b)=>a-b).forEach(p => {
+    md += `## Page ${p}\n\n`;
+    byPage[p].forEach(a => {
+      md += `### ${colorNames[a.color]||a.color} highlight\n`;
+      md += `> ${a.text}\n`;
+      if(a.note) md += `\n*Note: ${a.note}*\n`;
+      md += `\n---\n\n`;
+    });
+  });
+  const blob = new Blob([md], {type:'text/markdown'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='annotations.md'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Exported annotations.md');
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT') return;
+  if(e.key==='h'||e.key==='H') setMode('highlight');
+  if(e.key==='n'||e.key==='N') setMode('note');
+  if(e.key==='s'||e.key==='S') { setMode('select'); }
+  if(e.key==='Escape') { setMode('select'); hidePopover(); hideTooltip(); }
+  if((e.key==='b'||e.key==='B') && !e.ctrlKey && !e.metaKey) toggleSidebar();
+});
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function escHtml(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>
