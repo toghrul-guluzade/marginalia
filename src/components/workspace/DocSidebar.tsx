@@ -1,15 +1,21 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Upload, ChevronLeft, Trash2 } from "lucide-react";
+import { Upload, ChevronLeft, MoreVertical } from "lucide-react";
 import { useAnnotationStore } from "../../store/annotationStore";
-import type { LocalDoc } from "../../lib/localLibrary";
+import Menu, { MenuItem } from "../ui/Menu";
+import type { LocalDoc, Project } from "../../lib/localLibrary";
 
 interface DocSidebarProps {
-  projectName: string;
+  project: Project | null;
+  projects: Project[];
   documents: LocalDoc[];
   activeDocId: string | null;
   onSelectDoc: (id: string) => void;
   onUploadClick: () => void;
+  onRenameDoc: (id: string, title: string) => void;
+  onMoveDoc: (doc: LocalDoc, projectId: string) => void;
   onDeleteDoc: (doc: LocalDoc) => void;
+  onRenameProject: (name: string) => void;
 }
 
 function formatSize(bytes: number | null): string {
@@ -21,20 +27,28 @@ function formatSize(bytes: number | null): string {
 function DocItem({
   doc,
   active,
+  projects,
   onSelect,
+  onRename,
+  onMove,
   onDelete,
 }: {
   doc: LocalDoc;
   active: boolean;
+  projects: Project[];
   onSelect: () => void;
+  onRename: (title: string) => void;
+  onMove: (projectId: string) => void;
   onDelete: () => void;
 }) {
   const count = useAnnotationStore(
     (s) => (s.highlights[doc.id]?.length ?? 0) + (s.stickyNotes[doc.id]?.length ?? 0),
   );
+  const [editing, setEditing] = useState(false);
   const sub = [doc.page_count ? `${doc.page_count} pages` : null, formatSize(doc.file_size_bytes)]
     .filter(Boolean)
     .join(" · ");
+  const otherProjects = projects.filter((p) => p.id !== doc.project_id);
 
   return (
     <div
@@ -47,48 +61,115 @@ function DocItem({
         PDF
       </div>
       <div className="min-w-0 flex-1">
-        <div className={`truncate text-[12.5px] leading-snug ${active ? "text-cream" : "text-ghost"}`}>
-          {doc.title}
-        </div>
+        {editing ? (
+          <input
+            autoFocus
+            defaultValue={doc.title}
+            className="w-full rounded border border-ink-4 bg-ink-3 px-1 py-0.5 text-[12.5px] text-paper focus:outline-none"
+            onClick={(e) => e.stopPropagation()}
+            onBlur={(e) => {
+              setEditing(false);
+              if (e.target.value.trim()) onRename(e.target.value.trim());
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              if (e.key === "Escape") setEditing(false);
+            }}
+          />
+        ) : (
+          <div
+            className={`truncate text-[12.5px] leading-snug ${active ? "text-cream" : "text-ghost"}`}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setEditing(true);
+            }}
+          >
+            {doc.title}
+          </div>
+        )}
         {sub && <div className="mt-0.5 font-mono text-[11px] text-ink-5">{sub}</div>}
       </div>
+
       {count > 0 && (
         <span className="mt-0.5 shrink-0 rounded bg-ink-3 px-1.5 font-mono text-[10px] text-dim group-hover:bg-ink-4">
           {count}
         </span>
       )}
-      <button
-        className="mt-0.5 shrink-0 text-ink-5 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        aria-label={`Delete ${doc.title}`}
-        title="Delete document"
+
+      <Menu
+        triggerLabel="Document menu"
+        triggerClassName="mt-0.5 shrink-0 rounded p-0.5 text-ink-5 opacity-0 hover:text-paper group-hover:opacity-100"
+        trigger={<MoreVertical size={14} />}
       >
-        <Trash2 size={13} />
-      </button>
+        {(close) => (
+          <>
+            <MenuItem onClick={() => { close(); setEditing(true); }}>Rename</MenuItem>
+            {otherProjects.length > 0 && (
+              <>
+                <div className="px-3 pt-1.5 pb-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-5">
+                  Move to
+                </div>
+                {otherProjects.map((p) => (
+                  <MenuItem key={p.id} onClick={() => { close(); onMove(p.id); }}>
+                    {p.name}
+                  </MenuItem>
+                ))}
+                <div className="my-1 h-px bg-rule" />
+              </>
+            )}
+            <MenuItem danger onClick={() => { close(); onDelete(); }}>
+              Delete
+            </MenuItem>
+          </>
+        )}
+      </Menu>
     </div>
   );
 }
 
 export default function DocSidebar({
-  projectName,
+  project,
+  projects,
   documents,
   activeDocId,
   onSelectDoc,
   onUploadClick,
+  onRenameDoc,
+  onMoveDoc,
   onDeleteDoc,
+  onRenameProject,
 }: DocSidebarProps) {
+  const [editingName, setEditingName] = useState(false);
+
   return (
     <aside className="flex w-[260px] shrink-0 flex-col overflow-hidden border-r border-rule bg-ink-2">
       <div className="border-b border-rule px-4 py-3">
         <Link to="/" className="flex items-center gap-1.5 text-xs text-dim hover:text-ghost">
           <ChevronLeft size={14} /> Projects
         </Link>
-        <h1 className="mt-1.5 truncate font-serif text-lg text-paper" title={projectName}>
-          {projectName}
-        </h1>
+        {editingName ? (
+          <input
+            autoFocus
+            defaultValue={project?.name ?? ""}
+            className="mt-1.5 w-full rounded border border-ink-4 bg-ink-3 px-1 py-0.5 font-serif text-lg text-paper focus:outline-none"
+            onBlur={(e) => {
+              setEditingName(false);
+              if (e.target.value.trim()) onRenameProject(e.target.value.trim());
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              if (e.key === "Escape") setEditingName(false);
+            }}
+          />
+        ) : (
+          <h1
+            className="mt-1.5 truncate font-serif text-lg text-paper"
+            title="Double-click to rename"
+            onDoubleClick={() => setEditingName(true)}
+          >
+            {project?.name ?? "…"}
+          </h1>
+        )}
       </div>
 
       <div className="px-5 pt-4 pb-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
@@ -104,7 +185,10 @@ export default function DocSidebar({
               key={doc.id}
               doc={doc}
               active={doc.id === activeDocId}
+              projects={projects}
               onSelect={() => onSelectDoc(doc.id)}
+              onRename={(title) => onRenameDoc(doc.id, title)}
+              onMove={(projectId) => onMoveDoc(doc, projectId)}
               onDelete={() => onDeleteDoc(doc)}
             />
           ))

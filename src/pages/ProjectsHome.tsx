@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, FolderOpen, Trash2, FileText } from "lucide-react";
+import { Plus, FolderOpen, MoreVertical, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAnnotationStore } from "../store/annotationStore";
+import Menu, { MenuItem } from "../components/ui/Menu";
 import {
   listProjects,
   createProject,
@@ -140,17 +141,20 @@ export default function ProjectsHome() {
                   {(counts[p.id] ?? 0)} document{(counts[p.id] ?? 0) === 1 ? "" : "s"}
                 </p>
 
-                <button
-                  className="absolute right-3 top-3 rounded p-1 text-ink-5 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(p);
-                  }}
-                  aria-label={`Delete ${p.name}`}
-                  title="Delete project"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Menu
+                    triggerLabel={`${p.name} menu`}
+                    triggerClassName="rounded p-1 text-ink-5 hover:bg-ink-4 hover:text-paper"
+                    trigger={<MoreVertical size={16} />}
+                  >
+                    {(close) => (
+                      <>
+                        <MenuItem onClick={() => { close(); setEditingId(p.id); }}>Rename</MenuItem>
+                        <MenuItem danger onClick={() => { close(); handleDelete(p); }}>Delete</MenuItem>
+                      </>
+                    )}
+                  </Menu>
+                </div>
               </div>
             ))}
           </div>
