@@ -8,9 +8,12 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const isSupabaseConfigured =
   !!url && !!anonKey && !url.startsWith("your_") && !anonKey.startsWith("your_");
 
-// Construct the client even with placeholder values (construction is inert);
-// network calls are gated on `isSupabaseConfigured` by the UI/hooks.
-export const supabase = createClient(url ?? "http://localhost", anonKey ?? "anon");
+// Construct the client even when unconfigured (construction is inert) using a
+// valid dummy URL; network calls are gated on `isSupabaseConfigured` by the UI/hooks.
+export const supabase = createClient(
+  isSupabaseConfigured ? (url as string) : "https://placeholder.supabase.co",
+  isSupabaseConfigured ? (anonKey as string) : "placeholder-anon-key",
+);
 
 export interface DocumentRow {
   id: string;
