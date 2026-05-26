@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,10 +9,62 @@ import {
   Loader2,
   Check,
   AlertTriangle,
+  Settings,
+  Highlighter,
 } from "lucide-react";
 import { HIGHLIGHT_COLORS } from "../../types/annotation";
 import type { HighlightColor } from "../../types/annotation";
 import { useSyncStatus } from "../../lib/annotationSync";
+import type { PageBg } from "./PDFViewer";
+
+const PAGE_BG_OPTIONS: Array<{ value: PageBg; label: string }> = [
+  { value: "white", label: "White" },
+  { value: "cream", label: "Cream" },
+  { value: "dark", label: "Dark" },
+];
+
+function ReadingPrefs({ pageBg, onPageBgChange }: { pageBg: PageBg; onPageBgChange: (b: PageBg) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    window.addEventListener("pointerdown", onDown, true);
+    return () => window.removeEventListener("pointerdown", onDown, true);
+  }, [open]);
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        className="inline-flex items-center justify-center rounded p-1.5 text-gray-600 hover:bg-gray-100"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Reading preferences"
+        title="Reading preferences"
+      >
+        <Settings size={18} />
+      </button>
+      {open && (
+        <div className="absolute right-0 z-50 mt-1 w-40 rounded border border-gray-200 bg-white p-2 text-sm shadow-lg">
+          <p className="mb-1 text-xs font-medium text-gray-400">Page background</p>
+          <div className="flex gap-1">
+            {PAGE_BG_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                className={`flex-1 rounded px-1.5 py-1 text-xs ${
+                  pageBg === o.value ? "bg-brand text-white" : "text-gray-600 hover:bg-gray-100"
+                }`}
+                onClick={() => onPageBgChange(o.value)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SyncIndicator() {
   const status = useSyncStatus((s) => s.status);
@@ -33,12 +85,16 @@ interface PDFToolbarProps {
   zoom: number;
   noteMode: boolean;
   noteColor: HighlightColor;
+  highlightMode: boolean;
+  pageBg: PageBg;
   onPrevPage: () => void;
   onNextPage: () => void;
   onZoomChange: (zoom: number) => void;
   onFitWidth: () => void;
   onToggleNoteMode: () => void;
+  onToggleHighlightMode: () => void;
   onNoteColorChange: (color: HighlightColor) => void;
+  onPageBgChange: (b: PageBg) => void;
 }
 
 function iconButton(disabled = false) {
@@ -51,12 +107,16 @@ export default function PDFToolbar({
   zoom,
   noteMode,
   noteColor,
+  highlightMode,
+  pageBg,
   onPrevPage,
   onNextPage,
   onZoomChange,
   onFitWidth,
   onToggleNoteMode,
+  onToggleHighlightMode,
   onNoteColorChange,
+  onPageBgChange,
 }: PDFToolbarProps) {
   const [customZoom, setCustomZoom] = useState("");
 
@@ -160,8 +220,19 @@ export default function PDFToolbar({
 
       <div className="h-5 w-px bg-gray-200" />
 
-      {/* Note mode */}
+      {/* Highlight + note modes */}
       <div className="flex items-center gap-2">
+        <button
+          className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-sm ${
+            highlightMode ? "bg-brand text-white" : "text-gray-600 hover:bg-gray-100"
+          }`}
+          onClick={onToggleHighlightMode}
+          aria-pressed={highlightMode}
+          title="Highlight mode (H)"
+        >
+          <Highlighter size={16} />
+          Highlight
+        </button>
         <button
           className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-sm ${
             noteMode
@@ -173,7 +244,7 @@ export default function PDFToolbar({
           title="Note mode (N)"
         >
           <StickyNote size={16} />
-          {noteMode ? "Note mode" : "Note"}
+          Note
         </button>
 
         {noteMode && (
@@ -193,8 +264,16 @@ export default function PDFToolbar({
         )}
       </div>
 
-      <div className="ml-auto flex items-center">
+      {/* Active mode indicator pill */}
+      {(highlightMode || noteMode) && (
+        <span className="rounded-full bg-brand-light px-2 py-0.5 text-xs font-medium text-brand-dark">
+          {noteMode ? "Note mode" : "Highlight mode"}
+        </span>
+      )}
+
+      <div className="ml-auto flex items-center gap-2">
         <SyncIndicator />
+        <ReadingPrefs pageBg={pageBg} onPageBgChange={onPageBgChange} />
       </div>
     </div>
   );

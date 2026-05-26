@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PanelRight, ArrowLeft } from "lucide-react";
-import PDFViewer, { type PDFViewerHandle } from "../components/pdf/PDFViewer";
+import PDFViewer, { type PDFViewerHandle, type PageBg } from "../components/pdf/PDFViewer";
 import PDFToolbar from "../components/pdf/PDFToolbar";
 import AnnotationSidebar from "../components/annotations/AnnotationSidebar";
+import ShortcutsModal from "../components/ui/ShortcutsModal";
 import { useDocumentAnnotations } from "../hooks/useDocumentAnnotations";
+import { useDocumentState } from "../hooks/useDocumentState";
 import {
   getDocument,
   getSignedUrl,
@@ -21,6 +23,7 @@ const TEST_TITLE = "Trace-based Just-in-Time Type Specialization";
 export default function ViewerPage() {
   const { docId = "test" } = useParams();
   useDocumentAnnotations(docId);
+  const { restore, save } = useDocumentState(docId);
   const viewerRef = useRef<PDFViewerHandle>(null);
 
   const isDemo = !isSupabaseConfigured || docId === "test";
@@ -49,11 +52,15 @@ export default function ViewerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   // zoom === 1 means fit-to-width; presets scale relative to that.
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(() => restore()?.zoom ?? 1);
   const [noteMode, setNoteMode] = useState(false);
+  const [highlightMode, setHighlightMode] = useState(false);
   const [noteColor, setNoteColor] = useState<HighlightColor>("yellow");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pulsingId, setPulsingId] = useState<string | null>(null);
+  const [pageBg, setPageBg] = useState<PageBg>("white");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const goToPage = useCallback(
     (page: number) => {
@@ -71,25 +78,82 @@ export default function ViewerPage() {
   const prevPage = useCallback(() => goToPage(currentPage - 1), [currentPage, goToPage]);
   const nextPage = useCallback(() => goToPage(currentPage + 1), [currentPage, goToPage]);
 
-  // Keyboard page navigation (ignore while typing in inputs).
+  // Keyboard shortcuts (ignore single-key shortcuts while typing in inputs).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+      const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      const mod = e.metaKey || e.ctrlKey;
+
+      // Ctrl/Cmd + F — find in document
+      if (mod && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
+      if (mod && e.shiftKey && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        setSidebarOpen((v) => !v);
+        return;
+      }
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+        setShortcutsOpen(false);
+        return;
+      }
+
+      if (typing || mod) return;
+
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         prevPage();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         nextPage();
-      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "a") {
-        e.preventDefault();
+      } else if (e.key.toLowerCase() === "h") {
+        setHighlightMode((v) => !v);
+        setNoteMode(false);
+      } else if (e.key.toLowerCase() === "n") {
+        setNoteMode((v) => !v);
+        setHighlightMode(false);
+      } else if (e.key.toLowerCase() === "s") {
         setSidebarOpen((v) => !v);
+      } else if (e.key === "?") {
+        setShortcutsOpen(true);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [prevPage, nextPage]);
+
+  // Persist scroll/zoom/page per document, and restore scroll after load.
+  useEffect(() => {
+    const container = viewerRef.current?.getContainer();
+    if (!container) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() =>
+        save({ scrollY: container.scrollTop, zoom, page: currentPage }),
+      );
+    };
+    container.addEventListener("scroll", onScroll);
+    return () => {
+      container.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [save, zoom, currentPage, pdfUrl, totalPages]);
+
+  useEffect(() => {
+    if (totalPages === 0) return;
+    const saved = restore();
+    if (!saved) return;
+    const t = window.setTimeout(() => {
+      const container = viewerRef.current?.getContainer();
+      if (container) container.scrollTop = saved.scrollY;
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [totalPages, restore]);
 
   return (
     <div className="flex h-screen flex-col">
@@ -120,12 +184,16 @@ export default function ViewerPage() {
           zoom={zoom}
           noteMode={noteMode}
           noteColor={noteColor}
+          highlightMode={highlightMode}
+          pageBg={pageBg}
           onPrevPage={prevPage}
           onNextPage={nextPage}
           onZoomChange={setZoom}
           onFitWidth={() => setZoom(1)}
-          onToggleNoteMode={() => setNoteMode((v) => !v)}
+          onToggleNoteMode={() => { setNoteMode((v) => !v); setHighlightMode(false); }}
+          onToggleHighlightMode={() => { setHighlightMode((v) => !v); setNoteMode(false); }}
           onNoteColorChange={setNoteColor}
+          onPageBgChange={setPageBg}
         />
       </header>
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -146,6 +214,9 @@ export default function ViewerPage() {
               noteMode={noteMode}
               noteColor={noteColor}
               pulsingId={pulsingId}
+              pageBg={pageBg}
+              searchOpen={searchOpen}
+              onCloseSearch={() => setSearchOpen(false)}
               onTotalPages={setTotalPages}
               onCurrentPageChange={setCurrentPage}
             />
@@ -165,6 +236,8 @@ export default function ViewerPage() {
           onSelectNote={(n) => goToPage(n.pageNumber)}
         />
       </div>
+
+      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </div>
   );
 }

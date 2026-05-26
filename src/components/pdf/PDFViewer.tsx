@@ -14,6 +14,15 @@ import type { Highlight, HighlightColor } from "../../types/annotation";
 import PDFPage from "./PDFPage";
 import HighlightTooltip from "./HighlightTooltip";
 import HighlightPopover from "../annotations/HighlightPopover";
+import DocumentSearchBar from "./DocumentSearchBar";
+
+export type PageBg = "white" | "cream" | "dark";
+
+const PAGE_BG: Record<PageBg, string> = {
+  white: "bg-gray-100",
+  cream: "bg-[#FAFAF7]",
+  dark: "bg-[#1A1A2E]",
+};
 
 interface PDFViewerProps {
   /** A blob URL or remote URL to the PDF. */
@@ -27,6 +36,11 @@ interface PDFViewerProps {
   noteColor?: HighlightColor;
   /** Id of a highlight to briefly pulse (sidebar navigation). */
   pulsingId?: string | null;
+  /** Reading-area background. */
+  pageBg?: PageBg;
+  /** Whether the in-document search bar is open. */
+  searchOpen?: boolean;
+  onCloseSearch?: () => void;
   /** Reports the total page count once the document loads. */
   onTotalPages?: (total: number) => void;
   /** Reports the most-visible page as the user scrolls. */
@@ -67,7 +81,19 @@ function ErrorState({ error }: { error: Error }) {
  * device-pixel-ratio quality. Exposes scroll-to-page via a ref handle.
  */
 const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer(
-  { url, docId, zoom = 1, noteMode = false, noteColor = "yellow", pulsingId, onTotalPages, onCurrentPageChange },
+  {
+    url,
+    docId,
+    zoom = 1,
+    noteMode = false,
+    noteColor = "yellow",
+    pulsingId,
+    pageBg = "white",
+    searchOpen = false,
+    onCloseSearch,
+    onTotalPages,
+    onCurrentPageChange,
+  },
   ref,
 ) {
   const { pdf, totalPages, isLoading, error } = usePDFDocument(url);
@@ -123,22 +149,28 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
   if (!pdf) return null;
 
   return (
-    <div ref={scrollRef} className="flex h-full justify-center overflow-auto bg-gray-100 py-4">
-      <div className="flex w-full max-w-3xl flex-col gap-4 px-4">
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-          <PDFPage
-            key={pageNumber}
-            pdf={pdf}
-            pageNumber={pageNumber}
-            docId={docId}
-            zoom={zoom}
-            noteMode={noteMode}
-            noteColor={noteColor}
-            pulsingId={pulsingId}
-            onHighlightClick={(highlight, anchor) => setActivePopover({ highlight, anchor })}
-          />
-        ))}
+    <div className="relative h-full">
+      <div ref={scrollRef} className={`flex h-full justify-center overflow-auto py-4 ${PAGE_BG[pageBg]}`}>
+        <div className="flex w-full max-w-3xl flex-col gap-4 px-4">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+            <PDFPage
+              key={pageNumber}
+              pdf={pdf}
+              pageNumber={pageNumber}
+              docId={docId}
+              zoom={zoom}
+              noteMode={noteMode}
+              noteColor={noteColor}
+              pulsingId={pulsingId}
+              onHighlightClick={(highlight, anchor) => setActivePopover({ highlight, anchor })}
+            />
+          ))}
+        </div>
       </div>
+
+      {searchOpen && (
+        <DocumentSearchBar scrollRootRef={scrollRef} onClose={() => onCloseSearch?.()} />
+      )}
       {selection && (
         <HighlightTooltip anchor={selection.anchor} onHighlight={createHighlight} onClose={clear} />
       )}
