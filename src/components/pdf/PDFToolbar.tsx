@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -67,8 +66,6 @@ interface PDFToolbarProps {
   zoom: number;
   pageBg: PageBg;
   sidebarOpen: boolean;
-  /** Control for sending the current selection to a note. */
-  quoteSlot?: ReactNode;
   onPrevPage: () => void;
   onNextPage: () => void;
   onZoomChange: (zoom: number) => void;
@@ -85,7 +82,6 @@ export default function PDFToolbar({
   zoom,
   pageBg,
   sidebarOpen,
-  quoteSlot,
   onPrevPage,
   onNextPage,
   onZoomChange,
@@ -104,8 +100,6 @@ export default function PDFToolbar({
 
   return (
     <div className="flex items-center gap-2 border-b border-rule bg-ink-2 px-3 py-1.5">
-      {quoteSlot}
-
       {/* Title */}
       <div className="mx-2 flex flex-1 justify-center">
         <EditableTitle
