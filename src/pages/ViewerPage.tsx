@@ -1,19 +1,51 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import { PanelRight } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import { PanelRight, ArrowLeft } from "lucide-react";
 import PDFViewer, { type PDFViewerHandle } from "../components/pdf/PDFViewer";
 import PDFToolbar from "../components/pdf/PDFToolbar";
 import AnnotationSidebar from "../components/annotations/AnnotationSidebar";
+import { useDocumentAnnotations } from "../hooks/useDocumentAnnotations";
+import {
+  getDocument,
+  getSignedUrl,
+  updateDocument,
+  isSupabaseConfigured,
+} from "../lib/supabase";
 import type { HighlightColor } from "../types/annotation";
 
-// Hardcoded test PDF for Sprint 1. Replaced by Supabase-backed docs in Sprint 4.
+// Fallback demo PDF (docId "test", or whenever Supabase is unconfigured).
 const TEST_PDF_URL =
   "https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf";
 const TEST_TITLE = "Trace-based Just-in-Time Type Specialization";
 
 export default function ViewerPage() {
   const { docId = "test" } = useParams();
+  useDocumentAnnotations(docId);
   const viewerRef = useRef<PDFViewerHandle>(null);
+
+  const isDemo = !isSupabaseConfigured || docId === "test";
+  const [pdfUrl, setPdfUrl] = useState<string | null>(isDemo ? TEST_PDF_URL : null);
+  const [title, setTitle] = useState(isDemo ? TEST_TITLE : "Loading…");
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Load the real document (signed URL + title) and stamp last_opened_at.
+  useEffect(() => {
+    if (isDemo) return;
+    let cancelled = false;
+    getDocument(docId)
+      .then(async (doc) => {
+        if (!doc) throw new Error("Document not found");
+        const url = await getSignedUrl(doc.storage_path);
+        if (cancelled) return;
+        setPdfUrl(url);
+        setTitle(doc.title);
+        updateDocument(docId, { last_opened_at: new Date().toISOString() }).catch(() => {});
+      })
+      .catch((e) => !cancelled && setLoadError(e instanceof Error ? e.message : "Failed to load"));
+    return () => {
+      cancelled = true;
+    };
+  }, [docId, isDemo]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   // zoom === 1 means fit-to-width; presets scale relative to that.
@@ -63,7 +95,15 @@ export default function ViewerPage() {
     <div className="flex h-screen flex-col">
       <header className="shrink-0 border-b border-gray-200 bg-white">
         <div className="flex items-center gap-2 px-4 py-3">
-          <h1 className="min-w-0 flex-1 truncate text-base font-medium text-gray-800">{TEST_TITLE}</h1>
+          <Link
+            to="/"
+            className="rounded p-1.5 text-gray-500 hover:bg-gray-100"
+            aria-label="Back to library"
+            title="Back to library"
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <h1 className="min-w-0 flex-1 truncate text-base font-medium text-gray-800">{title}</h1>
           <button
             className={`rounded p-1.5 ${sidebarOpen ? "bg-brand-light text-brand-dark" : "text-gray-500 hover:bg-gray-100"}`}
             onClick={() => setSidebarOpen((v) => !v)}
@@ -90,21 +130,32 @@ export default function ViewerPage() {
       </header>
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <main className="min-h-0 min-w-0 flex-1">
-          <PDFViewer
-            ref={viewerRef}
-            url={TEST_PDF_URL}
-            docId={docId}
-            zoom={zoom}
-            noteMode={noteMode}
-            noteColor={noteColor}
-            pulsingId={pulsingId}
-            onTotalPages={setTotalPages}
-            onCurrentPageChange={setCurrentPage}
-          />
+          {loadError ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+              <p className="text-gray-700">{loadError}</p>
+              <Link to="/" className="text-sm font-medium text-brand hover:underline">
+                Back to library
+              </Link>
+            </div>
+          ) : pdfUrl ? (
+            <PDFViewer
+              ref={viewerRef}
+              url={pdfUrl}
+              docId={docId}
+              zoom={zoom}
+              noteMode={noteMode}
+              noteColor={noteColor}
+              pulsingId={pulsingId}
+              onTotalPages={setTotalPages}
+              onCurrentPageChange={setCurrentPage}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-gray-400">Loading document…</div>
+          )}
         </main>
         <AnnotationSidebar
           docId={docId}
-          docTitle={TEST_TITLE}
+          docTitle={title}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           onSelectHighlight={(h) => {

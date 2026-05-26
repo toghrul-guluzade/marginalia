@@ -6,9 +6,23 @@ import {
   ZoomOut,
   MoveHorizontal,
   StickyNote,
+  Loader2,
+  Check,
+  AlertTriangle,
 } from "lucide-react";
 import { HIGHLIGHT_COLORS } from "../../types/annotation";
 import type { HighlightColor } from "../../types/annotation";
+import { useSyncStatus } from "../../lib/annotationSync";
+
+function SyncIndicator() {
+  const status = useSyncStatus((s) => s.status);
+  if (status === "idle") return null;
+  if (status === "syncing")
+    return <Loader2 size={16} className="animate-spin text-gray-400" aria-label="Syncing" />;
+  if (status === "error")
+    return <AlertTriangle size={16} className="text-amber-500" aria-label="Sync failed" />;
+  return <Check size={16} className="text-green-600" aria-label="In sync" />;
+}
 
 const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const COLORS: HighlightColor[] = ["yellow", "green", "pink", "blue"];
@@ -177,6 +191,10 @@ export default function PDFToolbar({
             ))}
           </div>
         )}
+      </div>
+
+      <div className="ml-auto flex items-center">
+        <SyncIndicator />
       </div>
     </div>
   );
