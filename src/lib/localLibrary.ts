@@ -8,9 +8,14 @@ export interface Project {
   created_at: string;
 }
 
+export type DocKind = "pdf" | "text";
+
 export interface LocalDoc {
   id: string;
   project_id: string;
+  /** "pdf" (annotated in the viewer) or "text" (.md/.txt, edited in the rich editor).
+   *  Missing on legacy rows — treat as "pdf". */
+  kind?: DocKind;
   title: string;
   filename: string;
   page_count: number | null;
@@ -177,6 +182,7 @@ export async function addDocument(
   const doc: LocalDoc = {
     id,
     project_id: meta.projectId,
+    kind: "pdf",
     title: meta.title,
     filename: file.name,
     page_count: meta.pageCount,
@@ -187,6 +193,44 @@ export async function addDocument(
   };
   await tx(DOCS_STORE, "readwrite", (t) => t.objectStore(DOCS_STORE).put(doc));
   return doc;
+}
+
+/** Create a text (.md) document and store its markdown content. */
+export async function addTextDocument(meta: {
+  title: string;
+  content: string;
+  projectId: string;
+  filename?: string;
+}): Promise<LocalDoc> {
+  const id = crypto.randomUUID();
+  await tx(FILES_STORE, "readwrite", (t) => t.objectStore(FILES_STORE).put(meta.content, id));
+  const doc: LocalDoc = {
+    id,
+    project_id: meta.projectId,
+    kind: "text",
+    title: meta.title,
+    filename: meta.filename ?? `${meta.title}.md`,
+    page_count: null,
+    file_size_bytes: new Blob([meta.content]).size,
+    tags: [],
+    created_at: new Date().toISOString(),
+    last_opened_at: null,
+  };
+  await tx(DOCS_STORE, "readwrite", (t) => t.objectStore(DOCS_STORE).put(doc));
+  return doc;
+}
+
+export async function getTextContent(id: string): Promise<string> {
+  const content = await tx<string | Blob | undefined>(FILES_STORE, "readonly", (t) =>
+    t.objectStore(FILES_STORE).get(id),
+  );
+  if (content == null) return "";
+  return typeof content === "string" ? content : await content.text();
+}
+
+export async function saveTextContent(id: string, content: string): Promise<void> {
+  await tx(FILES_STORE, "readwrite", (t) => t.objectStore(FILES_STORE).put(content, id));
+  await updateDocument(id, { file_size_bytes: new Blob([content]).size });
 }
 
 export async function updateDocument(id: string, patch: Partial<LocalDoc>): Promise<void> {

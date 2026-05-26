@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Upload, ChevronLeft, MoreVertical } from "lucide-react";
+import { Upload, ChevronLeft, MoreVertical, FilePlus } from "lucide-react";
 import { useAnnotationStore } from "../../store/annotationStore";
 import Menu, { MenuItem } from "../ui/Menu";
 import type { LocalDoc, Project } from "../../lib/localLibrary";
@@ -12,10 +12,16 @@ interface DocSidebarProps {
   activeDocId: string | null;
   onSelectDoc: (id: string) => void;
   onUploadClick: () => void;
+  onNewNote: () => void;
   onRenameDoc: (id: string, title: string) => void;
   onMoveDoc: (doc: LocalDoc, projectId: string) => void;
   onDeleteDoc: (doc: LocalDoc) => void;
   onRenameProject: (name: string) => void;
+}
+
+function kindBadge(doc: LocalDoc): string {
+  if (doc.kind !== "text") return "PDF";
+  return /\.txt$/i.test(doc.filename) ? "TXT" : "MD";
 }
 
 function formatSize(bytes: number | null): string {
@@ -57,8 +63,8 @@ function DocItem({
       }`}
       onClick={onSelect}
     >
-      <div className="mt-0.5 flex h-8 w-7 shrink-0 items-center justify-center rounded bg-ink-4 font-mono text-[10px] text-dim">
-        PDF
+      <div className="mt-0.5 flex h-8 w-7 shrink-0 items-center justify-center rounded bg-ink-4 font-mono text-[9px] text-dim">
+        {kindBadge(doc)}
       </div>
       <div className="min-w-0 flex-1">
         {editing ? (
@@ -134,6 +140,7 @@ export default function DocSidebar({
   activeDocId,
   onSelectDoc,
   onUploadClick,
+  onNewNote,
   onRenameDoc,
   onMoveDoc,
   onDeleteDoc,
@@ -195,13 +202,20 @@ export default function DocSidebar({
         )}
       </div>
 
-      <div className="border-t border-rule p-3">
+      <div className="flex flex-col gap-2 border-t border-rule p-3">
         <button
           className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-ink-4 py-2.5 text-xs text-dim transition-colors hover:border-ink-5 hover:bg-ink-3 hover:text-ghost"
           onClick={onUploadClick}
         >
           <Upload size={14} />
-          Upload PDF
+          Upload PDF / .md / .txt
+        </button>
+        <button
+          className="flex w-full items-center justify-center gap-2 rounded-md py-1.5 text-xs text-dim transition-colors hover:text-ghost"
+          onClick={onNewNote}
+        >
+          <FilePlus size={14} />
+          New note
         </button>
       </div>
     </aside>

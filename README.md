@@ -1,8 +1,9 @@
 # Research Studio
 
-A clean, fast, personal research tool you own. Add PDFs, read them, highlight text in
-multiple colors, leave sticky notes, organize documents in a library, and export your
-annotations. No AI. No backend. No login — everything lives in your browser.
+A clean, fast, personal research tool you own. Organize work into **projects**, then
+within each project: add PDFs and highlight / sticky-note them, and write **notes**
+(.md / .txt) in a WYSIWYG editor. Multiple documents per project, switchable from the
+left sidebar. No AI. No backend. No login — everything lives in your browser.
 
 ## Stack
 

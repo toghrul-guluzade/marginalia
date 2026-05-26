@@ -10,6 +10,7 @@ import {
   listProjects,
   listDocuments,
   addDocument,
+  addTextDocument,
   updateDocument,
   deleteDocument,
   renameProject,
@@ -31,6 +32,7 @@ export default function ProjectWorkspace() {
   const [dragging, setDragging] = useState(false);
 
   const activeDocId = docId ?? docs[0]?.id ?? null;
+  const activeDoc = docs.find((d) => d.id === activeDocId) ?? null;
 
   const refresh = useCallback(() => {
     return listDocuments(projectId).then((d) =>
@@ -64,27 +66,45 @@ export default function ProjectWorkspace() {
     if (!files || files.length === 0) return;
     let firstNewId: string | null = null;
     for (const file of Array.from(files)) {
-      if (file.type !== "application/pdf") {
-        toast.error(`${file.name} is not a PDF`);
-        continue;
-      }
+      const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+      const isText = /\.(md|markdown|txt)$/i.test(file.name) || /^text\//.test(file.type);
       try {
-        const buffer = await file.arrayBuffer();
-        const { dataUrl, pageCount } = await generateThumbnail(buffer.slice(0));
-        const doc = await addDocument(file, {
-          title: file.name.replace(/\.pdf$/i, ""),
-          pageCount,
-          projectId,
-        });
-        cacheThumbnail(doc.id, dataUrl);
-        firstNewId ??= doc.id;
-        toast.success(`Added ${doc.title}`);
+        if (isPdf) {
+          const buffer = await file.arrayBuffer();
+          const { dataUrl, pageCount } = await generateThumbnail(buffer.slice(0));
+          const doc = await addDocument(file, {
+            title: file.name.replace(/\.pdf$/i, ""),
+            pageCount,
+            projectId,
+          });
+          cacheThumbnail(doc.id, dataUrl);
+          firstNewId ??= doc.id;
+          toast.success(`Added ${doc.title}`);
+        } else if (isText) {
+          const content = await file.text();
+          const doc = await addTextDocument({
+            title: file.name.replace(/\.(md|markdown|txt)$/i, ""),
+            content,
+            projectId,
+            filename: file.name,
+          });
+          firstNewId ??= doc.id;
+          toast.success(`Added ${doc.title}`);
+        } else {
+          toast.error(`${file.name}: only PDF, .md, or .txt`);
+        }
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Could not add PDF");
+        toast.error(err instanceof Error ? err.message : "Could not add file");
       }
     }
     await refresh();
     if (firstNewId) navigate(`/project/${projectId}/${firstNewId}`);
+  }
+
+  async function handleNewNote() {
+    const doc = await addTextDocument({ title: "Untitled note", content: "", projectId });
+    await refresh();
+    navigate(`/project/${projectId}/${doc.id}`);
   }
 
   async function handleRenameDoc(id: string, title: string) {
@@ -149,26 +169,32 @@ export default function ProjectWorkspace() {
         activeDocId={activeDocId}
         onSelectDoc={selectDoc}
         onUploadClick={() => fileInputRef.current?.click()}
+        onNewNote={handleNewNote}
         onRenameDoc={handleRenameDoc}
         onMoveDoc={handleMoveDoc}
         onDeleteDoc={handleDeleteDoc}
         onRenameProject={handleRenameProject}
       />
 
-      {activeDocId ? (
-        <DocPane key={activeDocId} docId={activeDocId} />
+      {activeDoc ? (
+        <DocPane key={activeDoc.id} doc={activeDoc} />
       ) : (
-        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3 text-dim">
+        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-4 text-dim">
           {loading ? (
             <p>Loading…</p>
           ) : (
-            <button
-              className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-ink-4 px-16 py-12 hover:border-ink-5 hover:text-ghost"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload size={32} />
-              <span className="text-sm">Upload or drop a PDF to start</span>
-            </button>
+            <>
+              <button
+                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-ink-4 px-16 py-12 hover:border-ink-5 hover:text-ghost"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload size={32} />
+                <span className="text-sm">Upload or drop a PDF / .md / .txt</span>
+              </button>
+              <button className="text-sm text-dim hover:text-ghost" onClick={handleNewNote}>
+                or create a new note
+              </button>
+            </>
           )}
         </div>
       )}
@@ -185,7 +211,7 @@ export default function ProjectWorkspace() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf"
+        accept="application/pdf,.md,.markdown,.txt,text/markdown,text/plain"
         multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
