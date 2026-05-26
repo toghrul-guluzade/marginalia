@@ -34,6 +34,8 @@ interface PDFViewerProps {
   /** When true, clicking a page places a sticky note. */
   noteMode?: boolean;
   noteColor?: HighlightColor;
+  /** Called after a sticky note is placed. */
+  onNotePlaced?: () => void;
   /** Id of a highlight to briefly pulse (sidebar navigation). */
   pulsingId?: string | null;
   /** Reading-area background. */
@@ -87,6 +89,7 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
     zoom = 1,
     noteMode = false,
     noteColor = "yellow",
+    onNotePlaced,
     pulsingId,
     pageBg = "white",
     searchOpen = false,
@@ -172,6 +175,7 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
               zoom={zoom}
               noteMode={noteMode}
               noteColor={noteColor}
+              onNotePlaced={onNotePlaced}
               pulsingId={pulsingId}
               onHighlightClick={(highlight, anchor) => setActivePopover({ highlight, anchor })}
             />

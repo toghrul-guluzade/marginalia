@@ -21,6 +21,8 @@ interface PDFPageProps {
   /** When true, clicking the page places a sticky note. */
   noteMode?: boolean;
   noteColor?: HighlightColor;
+  /** Called after a sticky note is placed (so the tool can deselect). */
+  onNotePlaced?: () => void;
 }
 
 /**
@@ -42,6 +44,7 @@ export default function PDFPage({
   pulsingId,
   noteMode = false,
   noteColor = "yellow",
+  onNotePlaced,
 }: PDFPageProps) {
   const stickyNotes = useAnnotationStore((s) => s.stickyNotes[docId] ?? EMPTY);
   const addStickyNote = useAnnotationStore((s) => s.addStickyNote);
@@ -180,6 +183,7 @@ export default function PDFPage({
                 color: noteColor,
                 createdAt: new Date().toISOString(),
               });
+              onNotePlaced?.();
             }}
           />
         )}

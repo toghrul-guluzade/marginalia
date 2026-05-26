@@ -158,6 +158,7 @@ export default function PdfDocView({ doc, onRename }: PdfDocViewProps) {
               zoom={zoom}
               noteMode={noteMode}
               noteColor={noteColor}
+              onNotePlaced={() => setNoteMode(false)}
               pulsingId={pulsingId}
               pageBg={pageBg}
               searchOpen={searchOpen}
