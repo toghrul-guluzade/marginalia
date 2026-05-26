@@ -4,13 +4,20 @@ import {
   useImperativeHandle,
   useRef,
 } from "react";
+import toast from "react-hot-toast";
 import { usePDFDocument } from "../../hooks/usePDFDocument";
 import { usePageObserver } from "../../hooks/usePageObserver";
+import { useTextSelection } from "../../hooks/useTextSelection";
+import { useAnnotationStore } from "../../store/annotationStore";
+import type { Highlight, HighlightColor } from "../../types/annotation";
 import PDFPage from "./PDFPage";
+import HighlightTooltip from "./HighlightTooltip";
 
 interface PDFViewerProps {
   /** A blob URL or remote URL to the PDF. */
   url: string;
+  /** Document id used to key annotations. */
+  docId: string;
   /** Zoom multiplier applied on top of fit-to-width. Default 1. */
   zoom?: number;
   /** Reports the total page count once the document loads. */
@@ -53,12 +60,30 @@ function ErrorState({ error }: { error: Error }) {
  * device-pixel-ratio quality. Exposes scroll-to-page via a ref handle.
  */
 const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer(
-  { url, zoom = 1, onTotalPages, onCurrentPageChange },
+  { url, docId, zoom = 1, onTotalPages, onCurrentPageChange },
   ref,
 ) {
   const { pdf, totalPages, isLoading, error } = usePDFDocument(url);
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentPage = usePageObserver(scrollRef, totalPages);
+  const { selection, clear } = useTextSelection();
+  const addHighlight = useAnnotationStore((s) => s.addHighlight);
+
+  function createHighlight(color: HighlightColor) {
+    if (!selection) return;
+    const highlight: Highlight = {
+      id: crypto.randomUUID(),
+      docId,
+      color,
+      rects: selection.rects,
+      selectedText: selection.selectedText,
+      createdAt: new Date().toISOString(),
+    };
+    addHighlight(highlight);
+    clear();
+    window.getSelection()?.removeAllRanges();
+    toast.success("Highlight added");
+  }
 
   useImperativeHandle(ref, () => ({
     scrollToPage(pageNumber: number) {
@@ -90,9 +115,12 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
     <div ref={scrollRef} className="flex h-full justify-center overflow-auto bg-gray-100 py-4">
       <div className="flex w-full max-w-3xl flex-col gap-4 px-4">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-          <PDFPage key={pageNumber} pdf={pdf} pageNumber={pageNumber} zoom={zoom} />
+          <PDFPage key={pageNumber} pdf={pdf} pageNumber={pageNumber} docId={docId} zoom={zoom} />
         ))}
       </div>
+      {selection && (
+        <HighlightTooltip anchor={selection.anchor} onHighlight={createHighlight} onClose={clear} />
+      )}
     </div>
   );
 });

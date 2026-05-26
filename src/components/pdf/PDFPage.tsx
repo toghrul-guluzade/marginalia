@@ -5,6 +5,8 @@ import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 interface PDFPageProps {
   pdf: PDFDocumentProxy;
   pageNumber: number;
+  /** Document id, used to look up highlights for this page. */
+  docId: string;
   /** Zoom multiplier applied on top of the fit-to-width scale. Default 1. */
   zoom?: number;
 }
@@ -19,7 +21,8 @@ interface PDFPageProps {
  * PDF bottom-left Y inversion is needed. Highlights are stored in scale-1.0
  * viewport coordinates and multiplied by `scale` at render time.
  */
-export default function PDFPage({ pdf, pageNumber, zoom = 1 }: PDFPageProps) {
+export default function PDFPage({ pdf, pageNumber, docId, zoom = 1 }: PDFPageProps) {
+  void docId; // used by HighlightLayer in Sprint 2.3
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);

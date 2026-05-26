@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import PDFViewer, { type PDFViewerHandle } from "../components/pdf/PDFViewer";
 import PDFToolbar from "../components/pdf/PDFToolbar";
 
@@ -8,6 +9,7 @@ const TEST_PDF_URL =
 const TEST_TITLE = "Trace-based Just-in-Time Type Specialization";
 
 export default function ViewerPage() {
+  const { docId = "test" } = useParams();
   const viewerRef = useRef<PDFViewerHandle>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -63,6 +65,7 @@ export default function ViewerPage() {
         <PDFViewer
           ref={viewerRef}
           url={TEST_PDF_URL}
+          docId={docId}
           zoom={zoom}
           onTotalPages={setTotalPages}
           onCurrentPageChange={setCurrentPage}
