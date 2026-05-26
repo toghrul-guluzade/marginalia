@@ -24,6 +24,7 @@ import {
   Loader2,
 } from "lucide-react";
 import type { Editor } from "@tiptap/react";
+import EditableTitle from "../ui/EditableTitle";
 import { getTextContent, saveTextContent, type LocalDoc } from "../../lib/localLibrary";
 
 // tiptap-markdown augments editor.storage at runtime but ships no types for it.
@@ -39,7 +40,7 @@ function Sep() {
   return <span className="mx-1 h-4 w-px shrink-0 bg-rule" />;
 }
 
-export default function TextDocView({ doc }: { doc: LocalDoc }) {
+export default function TextDocView({ doc, onRename }: { doc: LocalDoc; onRename: (title: string) => void }) {
   const [loaded, setLoaded] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
   const saveTimer = useRef<number | null>(null);
@@ -192,9 +193,13 @@ export default function TextDocView({ doc }: { doc: LocalDoc }) {
           </>
         )}
 
-        <span className="mx-2 flex-1 truncate text-center font-serif text-sm italic text-paper" title={doc.title}>
-          {doc.title}
-        </span>
+        <div className="mx-2 flex flex-1 justify-center">
+          <EditableTitle
+            value={doc.title}
+            onSave={onRename}
+            className="max-w-full text-center font-serif text-sm italic text-paper"
+          />
+        </div>
 
         <span className="flex items-center gap-1 font-mono text-[10px] text-dim">
           {saveState === "saving" ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} className="text-green-600" />}

@@ -9,7 +9,7 @@ import type { HighlightColor } from "../../types/annotation";
 
 /** PDF document workspace: toolbar + PDF.js viewer + annotation sidebar.
  *  Keyed by doc id upstream, so its state resets cleanly when switching docs. */
-export default function PdfDocView({ doc }: { doc: LocalDoc }) {
+export default function PdfDocView({ doc, onRename }: { doc: LocalDoc; onRename: (title: string) => void }) {
   const docId = doc.id;
   const { restore, save } = useDocumentState(docId);
   const viewerRef = useRef<PDFViewerHandle>(null);
@@ -128,6 +128,7 @@ export default function PdfDocView({ doc }: { doc: LocalDoc }) {
     <div className="flex min-w-0 flex-1 flex-col">
       <PDFToolbar
         title={doc.title}
+        onRenameTitle={onRename}
         currentPage={currentPage}
         totalPages={totalPages}
         zoom={zoom}

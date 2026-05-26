@@ -13,6 +13,7 @@ import {
 import { HIGHLIGHT_COLORS } from "../../types/annotation";
 import type { HighlightColor } from "../../types/annotation";
 import type { PageBg } from "./PDFViewer";
+import EditableTitle from "../ui/EditableTitle";
 
 const PAGE_BG_OPTIONS: Array<{ value: PageBg; label: string }> = [
   { value: "white", label: "White" },
@@ -65,6 +66,7 @@ const COLORS: HighlightColor[] = ["yellow", "green", "pink", "blue"];
 
 interface PDFToolbarProps {
   title: string;
+  onRenameTitle: (title: string) => void;
   currentPage: number;
   totalPages: number;
   zoom: number;
@@ -86,6 +88,7 @@ interface PDFToolbarProps {
 
 export default function PDFToolbar({
   title,
+  onRenameTitle,
   currentPage,
   totalPages,
   zoom,
@@ -164,9 +167,13 @@ export default function PDFToolbar({
       </span>
 
       {/* Title */}
-      <span className="mx-2 flex-1 truncate text-center font-serif text-sm italic text-paper" title={title}>
-        {title}
-      </span>
+      <div className="mx-2 flex flex-1 justify-center">
+        <EditableTitle
+          value={title}
+          onSave={onRenameTitle}
+          className="max-w-full text-center font-serif text-sm italic text-paper"
+        />
+      </div>
 
       {/* Page nav */}
       <button className={iconBtn} onClick={onPrevPage} disabled={currentPage <= 1} aria-label="Previous page" title="Previous page (←)">

@@ -177,7 +177,11 @@ export default function ProjectWorkspace() {
       />
 
       {activeDoc ? (
-        <DocPane key={activeDoc.id} doc={activeDoc} />
+        <DocPane
+          key={activeDoc.id}
+          doc={activeDoc}
+          onRename={(title) => handleRenameDoc(activeDoc.id, title)}
+        />
       ) : (
         <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-4 text-dim">
           {loading ? (
