@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import PDFViewer, { type PDFViewerHandle, type PageBg } from "../pdf/PDFViewer";
+import PDFViewer, { type PDFViewerHandle } from "../pdf/PDFViewer";
 import PDFToolbar from "../pdf/PDFToolbar";
 import AnnotationSidebar from "../annotations/AnnotationSidebar";
 import ShortcutsModal from "../ui/ShortcutsModal";
@@ -27,7 +27,6 @@ export default function PdfDocView({ doc, onRename }: PdfDocViewProps) {
   const [zoom, setZoom] = useState(() => restore()?.zoom ?? 1);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pulsingId, setPulsingId] = useState<string | null>(null);
-  const [pageBg, setPageBg] = useState<PageBg>("dark");
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [noteMode, setNoteMode] = useState(false);
@@ -132,15 +131,12 @@ export default function PdfDocView({ doc, onRename }: PdfDocViewProps) {
         currentPage={currentPage}
         totalPages={totalPages}
         zoom={zoom}
-        pageBg={pageBg}
         sidebarOpen={sidebarOpen}
         noteMode={noteMode}
         noteColor={noteColor}
         onPrevPage={prevPage}
         onNextPage={nextPage}
         onZoomChange={setZoom}
-        onFitWidth={() => setZoom(1)}
-        onPageBgChange={setPageBg}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
         onToggleNoteMode={() => setNoteMode((v) => !v)}
         onNoteColorChange={setNoteColor}
@@ -160,7 +156,7 @@ export default function PdfDocView({ doc, onRename }: PdfDocViewProps) {
               noteColor={noteColor}
               onNotePlaced={() => setNoteMode(false)}
               pulsingId={pulsingId}
-              pageBg={pageBg}
+              pageBg="dark"
               searchOpen={searchOpen}
               onCloseSearch={() => setSearchOpen(false)}
               onTotalPages={setTotalPages}

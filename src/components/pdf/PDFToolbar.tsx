@@ -1,67 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  MoveHorizontal,
-  Settings,
-  PanelRight,
-  StickyNote,
-} from "lucide-react";
-import type { PageBg } from "./PDFViewer";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, PanelRight, StickyNote } from "lucide-react";
 import { HIGHLIGHT_COLORS } from "../../types/annotation";
 import type { HighlightColor } from "../../types/annotation";
 import EditableTitle from "../ui/EditableTitle";
 
 const NOTE_COLORS: HighlightColor[] = ["yellow", "green", "pink", "blue"];
 
-const PAGE_BG_OPTIONS: Array<{ value: PageBg; label: string }> = [
-  { value: "white", label: "White" },
-  { value: "cream", label: "Cream" },
-  { value: "dark", label: "Dark" },
-];
-
 const iconBtn =
   "inline-flex items-center justify-center rounded-md p-1.5 text-dim hover:bg-ink-3 hover:text-paper disabled:opacity-30 disabled:hover:bg-transparent transition-colors";
-
-function ReadingPrefs({ pageBg, onPageBgChange }: { pageBg: PageBg; onPageBgChange: (b: PageBg) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    window.addEventListener("pointerdown", onDown, true);
-    return () => window.removeEventListener("pointerdown", onDown, true);
-  }, [open]);
-  return (
-    <div className="relative" ref={ref}>
-      <button className={iconBtn} onClick={() => setOpen((v) => !v)} aria-label="Reading preferences" title="Reading preferences">
-        <Settings size={16} />
-      </button>
-      {open && (
-        <div className="absolute right-0 z-50 mt-1 w-40 rounded-lg border border-ink-4 bg-ink-2 p-2 text-sm shadow-xl">
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-dim">Page background</p>
-          <div className="flex gap-1">
-            {PAGE_BG_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                className={`flex-1 rounded px-1.5 py-1 text-xs ${
-                  pageBg === o.value ? "bg-ink-4 text-paper" : "text-dim hover:bg-ink-3"
-                }`}
-                onClick={() => onPageBgChange(o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface PDFToolbarProps {
   title: string;
@@ -69,15 +15,12 @@ interface PDFToolbarProps {
   currentPage: number;
   totalPages: number;
   zoom: number;
-  pageBg: PageBg;
   sidebarOpen: boolean;
   noteMode: boolean;
   noteColor: HighlightColor;
   onPrevPage: () => void;
   onNextPage: () => void;
   onZoomChange: (zoom: number) => void;
-  onFitWidth: () => void;
-  onPageBgChange: (b: PageBg) => void;
   onToggleSidebar: () => void;
   onToggleNoteMode: () => void;
   onNoteColorChange: (c: HighlightColor) => void;
@@ -89,15 +32,12 @@ export default function PDFToolbar({
   currentPage,
   totalPages,
   zoom,
-  pageBg,
   sidebarOpen,
   noteMode,
   noteColor,
   onPrevPage,
   onNextPage,
   onZoomChange,
-  onFitWidth,
-  onPageBgChange,
   onToggleSidebar,
   onToggleNoteMode,
   onNoteColorChange,
@@ -177,13 +117,9 @@ export default function PDFToolbar({
       <button className={iconBtn} onClick={() => onZoomChange(+(zoom + 0.25).toFixed(2))} aria-label="Zoom in" title="Zoom in">
         <ZoomIn size={16} />
       </button>
-      <button className={iconBtn} onClick={onFitWidth} aria-label="Fit to width" title="Fit to width">
-        <MoveHorizontal size={16} />
-      </button>
 
       <div className="mx-1 h-4 w-px bg-rule" />
 
-      <ReadingPrefs pageBg={pageBg} onPageBgChange={onPageBgChange} />
       <button
         className={`${iconBtn} ${sidebarOpen ? "bg-ink-4 text-paper" : ""}`}
         onClick={onToggleSidebar}
