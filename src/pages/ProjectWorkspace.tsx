@@ -14,9 +14,12 @@ import {
   updateDocument,
   deleteDocument,
   renameProject,
+  getTextContent,
+  saveTextContent,
   type LocalDoc,
   type Project,
 } from "../lib/localLibrary";
+import type { QuotePayload } from "../components/workspace/PdfDocView";
 import { generateThumbnail, cacheThumbnail, removeCachedThumbnail } from "../lib/pdfThumbnail";
 
 export default function ProjectWorkspace() {
@@ -107,6 +110,30 @@ export default function ProjectWorkspace() {
     navigate(`/project/${projectId}/${doc.id}`);
   }
 
+  // Send a PDF selection (quote + reference) into a note. noteId null = new note.
+  async function handleQuoteToNote(noteId: string | null, payload: QuotePayload) {
+    const quote = payload.text.split("\n").join(" ").trim();
+    const block = `> ${quote}\n\n*— ${payload.sourceTitle}, p.${payload.page}*\n`;
+    try {
+      if (noteId) {
+        const existing = await getTextContent(noteId);
+        await saveTextContent(noteId, existing ? `${existing.trimEnd()}\n\n${block}` : block);
+        const note = docs.find((d) => d.id === noteId);
+        toast.success(`Sent to ${note?.title ?? "note"}`);
+      } else {
+        const note = await addTextDocument({
+          title: `Notes — ${payload.sourceTitle}`.slice(0, 60),
+          content: block,
+          projectId,
+        });
+        await refresh();
+        toast.success(`Created “${note.title}” with the quote`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send to note");
+    }
+  }
+
   async function handleRenameDoc(id: string, title: string) {
     await updateDocument(id, { title });
     refresh();
@@ -182,6 +209,7 @@ export default function ProjectWorkspace() {
           doc={activeDoc}
           docs={docs}
           onRename={(title) => handleRenameDoc(activeDoc.id, title)}
+          onQuoteToNote={handleQuoteToNote}
         />
       ) : (
         <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-4 text-dim">

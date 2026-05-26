@@ -1,17 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   ChevronLeft,
   ChevronRight,
   ZoomIn,
   ZoomOut,
   MoveHorizontal,
-  StickyNote,
   Settings,
-  Highlighter,
   PanelRight,
 } from "lucide-react";
-import { HIGHLIGHT_COLORS } from "../../types/annotation";
-import type { HighlightColor } from "../../types/annotation";
 import type { PageBg } from "./PDFViewer";
 import EditableTitle from "../ui/EditableTitle";
 
@@ -62,26 +59,20 @@ function ReadingPrefs({ pageBg, onPageBgChange }: { pageBg: PageBg; onPageBgChan
   );
 }
 
-const COLORS: HighlightColor[] = ["yellow", "green", "pink", "blue"];
-
 interface PDFToolbarProps {
   title: string;
   onRenameTitle: (title: string) => void;
   currentPage: number;
   totalPages: number;
   zoom: number;
-  noteMode: boolean;
-  noteColor: HighlightColor;
-  highlightMode: boolean;
   pageBg: PageBg;
   sidebarOpen: boolean;
+  /** Control for sending the current selection to a note. */
+  quoteSlot?: ReactNode;
   onPrevPage: () => void;
   onNextPage: () => void;
   onZoomChange: (zoom: number) => void;
   onFitWidth: () => void;
-  onToggleNoteMode: () => void;
-  onToggleHighlightMode: () => void;
-  onNoteColorChange: (color: HighlightColor) => void;
   onPageBgChange: (b: PageBg) => void;
   onToggleSidebar: () => void;
 }
@@ -92,18 +83,13 @@ export default function PDFToolbar({
   currentPage,
   totalPages,
   zoom,
-  noteMode,
-  noteColor,
-  highlightMode,
   pageBg,
   sidebarOpen,
+  quoteSlot,
   onPrevPage,
   onNextPage,
   onZoomChange,
   onFitWidth,
-  onToggleNoteMode,
-  onToggleHighlightMode,
-  onNoteColorChange,
   onPageBgChange,
   onToggleSidebar,
 }: PDFToolbarProps) {
@@ -118,53 +104,7 @@ export default function PDFToolbar({
 
   return (
     <div className="flex items-center gap-2 border-b border-rule bg-ink-2 px-3 py-1.5">
-      {/* Modes */}
-      <button
-        className={`${iconBtn} ${highlightMode ? "bg-ink-4 text-paper" : ""}`}
-        onClick={onToggleHighlightMode}
-        aria-pressed={highlightMode}
-        title="Highlight mode (H)"
-      >
-        <Highlighter size={16} />
-      </button>
-      <button
-        className={`${iconBtn} ${noteMode ? "bg-ink-4 text-paper" : ""}`}
-        onClick={onToggleNoteMode}
-        aria-pressed={noteMode}
-        title="Note mode (N)"
-      >
-        <StickyNote size={16} />
-      </button>
-
-      <div className="mx-1 h-4 w-px bg-rule" />
-
-      {/* Note color swatches */}
-      {COLORS.map((color) => (
-        <button
-          key={color}
-          className={`h-4 w-4 rounded-full border-2 transition-transform hover:scale-110 ${
-            noteColor === color ? "border-paper" : "border-transparent"
-          }`}
-          style={{ backgroundColor: HIGHLIGHT_COLORS[color] }}
-          aria-label={`Note color ${color}`}
-          onClick={() => onNoteColorChange(color)}
-        />
-      ))}
-
-      <div className="mx-1 h-4 w-px bg-rule" />
-
-      {/* Active mode badge */}
-      <span
-        className={`shrink-0 rounded px-2 py-0.5 font-mono text-[10px] tracking-wide ${
-          highlightMode
-            ? "bg-amber-500/15 text-amber-500"
-            : noteMode
-              ? "bg-ink-3 text-ghost"
-              : "bg-ink-3 text-dim"
-        }`}
-      >
-        {highlightMode ? "highlight" : noteMode ? "note" : "select"}
-      </span>
+      {quoteSlot}
 
       {/* Title */}
       <div className="mx-2 flex flex-1 justify-center">

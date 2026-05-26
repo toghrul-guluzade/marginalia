@@ -3,13 +3,34 @@ import PDFViewer, { type PDFViewerHandle, type PageBg } from "../pdf/PDFViewer";
 import PDFToolbar from "../pdf/PDFToolbar";
 import AnnotationSidebar from "../annotations/AnnotationSidebar";
 import ShortcutsModal from "../ui/ShortcutsModal";
+import QuoteToNoteMenu from "./QuoteToNoteMenu";
 import { useDocumentState } from "../../hooks/useDocumentState";
 import { getFileUrl, updateDocument, type LocalDoc } from "../../lib/localLibrary";
-import type { HighlightColor } from "../../types/annotation";
+
+export interface QuotePayload {
+  text: string;
+  sourceTitle: string;
+  page: number;
+}
+
+interface PdfDocViewProps {
+  doc: LocalDoc;
+  onRename: (title: string) => void;
+  /** Project notes the selection can be sent to. */
+  notes: LocalDoc[];
+  /** Send the current selection (noteId, or null to create a new note). */
+  onQuoteToNote: (noteId: string | null, payload: QuotePayload) => void;
+}
+
+function selectionPage(node: Node | null): number {
+  let el = node instanceof HTMLElement ? node : node?.parentElement ?? null;
+  while (el && !el.dataset.pageNumber) el = el.parentElement;
+  return el ? Number(el.dataset.pageNumber) : 0;
+}
 
 /** PDF document workspace: toolbar + PDF.js viewer + annotation sidebar.
  *  Keyed by doc id upstream, so its state resets cleanly when switching docs. */
-export default function PdfDocView({ doc, onRename }: { doc: LocalDoc; onRename: (title: string) => void }) {
+export default function PdfDocView({ doc, onRename, notes, onQuoteToNote }: PdfDocViewProps) {
   const docId = doc.id;
   const { restore, save } = useDocumentState(docId);
   const viewerRef = useRef<PDFViewerHandle>(null);
@@ -20,14 +41,28 @@ export default function PdfDocView({ doc, onRename }: { doc: LocalDoc; onRename:
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [zoom, setZoom] = useState(() => restore()?.zoom ?? 1);
-  const [noteMode, setNoteMode] = useState(false);
-  const [highlightMode, setHighlightMode] = useState(false);
-  const [noteColor, setNoteColor] = useState<HighlightColor>("yellow");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pulsingId, setPulsingId] = useState<string | null>(null);
   const [pageBg, setPageBg] = useState<PageBg>("dark");
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [selection, setSelection] = useState<{ text: string; page: number } | null>(null);
+
+  // Track the latest non-empty text selection so "To note" can use it even after
+  // the dropdown click collapses the live selection.
+  useEffect(() => {
+    function onMouseUp() {
+      const sel = window.getSelection();
+      const text = sel?.toString().trim() ?? "";
+      if (!sel || sel.isCollapsed || !text) {
+        setSelection(null);
+        return;
+      }
+      setSelection({ text, page: selectionPage(sel.anchorNode) });
+    }
+    document.addEventListener("mouseup", onMouseUp);
+    return () => document.removeEventListener("mouseup", onMouseUp);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,12 +117,6 @@ export default function PdfDocView({ doc, onRename }: { doc: LocalDoc; onRename:
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         nextPage();
-      } else if (e.key.toLowerCase() === "h") {
-        setHighlightMode((v) => !v);
-        setNoteMode(false);
-      } else if (e.key.toLowerCase() === "n") {
-        setNoteMode((v) => !v);
-        setHighlightMode(false);
       } else if (e.key.toLowerCase() === "s") {
         setSidebarOpen((v) => !v);
       } else if (e.key === "?") {
@@ -132,18 +161,22 @@ export default function PdfDocView({ doc, onRename }: { doc: LocalDoc; onRename:
         currentPage={currentPage}
         totalPages={totalPages}
         zoom={zoom}
-        noteMode={noteMode}
-        noteColor={noteColor}
-        highlightMode={highlightMode}
         pageBg={pageBg}
         sidebarOpen={sidebarOpen}
+        quoteSlot={
+          <QuoteToNoteMenu
+            hasSelection={!!selection}
+            notes={notes}
+            onQuote={(noteId) => {
+              if (selection)
+                onQuoteToNote(noteId, { text: selection.text, sourceTitle: doc.title, page: selection.page });
+            }}
+          />
+        }
         onPrevPage={prevPage}
         onNextPage={nextPage}
         onZoomChange={setZoom}
         onFitWidth={() => setZoom(1)}
-        onToggleNoteMode={() => { setNoteMode((v) => !v); setHighlightMode(false); }}
-        onToggleHighlightMode={() => { setHighlightMode((v) => !v); setNoteMode(false); }}
-        onNoteColorChange={setNoteColor}
         onPageBgChange={setPageBg}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
       />
@@ -158,8 +191,6 @@ export default function PdfDocView({ doc, onRename }: { doc: LocalDoc; onRename:
               url={pdfUrl}
               docId={docId}
               zoom={zoom}
-              noteMode={noteMode}
-              noteColor={noteColor}
               pulsingId={pulsingId}
               pageBg={pageBg}
               searchOpen={searchOpen}
