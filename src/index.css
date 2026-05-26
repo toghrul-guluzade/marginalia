@@ -193,13 +193,14 @@ body {
   pointer-events: none;
 }
 
-/* In-document text search match highlighting (orange) on text-layer spans. */
-.textLayer span.search-match {
-  background: rgba(255, 165, 0, 0.4);
+/* In-document text search: highlight only the matched substring (orange). */
+.textLayer .search-mark {
+  background: rgba(255, 165, 0, 0.45);
   border-radius: 2px;
+  color: transparent;
 }
-.textLayer span.search-current {
-  background: rgba(255, 140, 0, 0.75);
+.textLayer .search-mark.current {
+  background: rgba(255, 140, 0, 0.9);
 }
 
 body {
