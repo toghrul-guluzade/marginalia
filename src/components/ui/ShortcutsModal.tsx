@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 
 const SHORTCUTS: Array<[string, string]> = [
-  ["Select text", "Pick a color to highlight, or send the quote to a note"],
+  ["Select text", "Pick a color to highlight it"],
+  ["N", "Sticky-note tool — then click the page to place a note"],
   ["S", "Toggle annotation sidebar"],
   ["Ctrl / Cmd + F", "Find text in document"],
   ["← / →", "Previous / next page"],

@@ -5,6 +5,7 @@ import AnnotationSidebar from "../annotations/AnnotationSidebar";
 import ShortcutsModal from "../ui/ShortcutsModal";
 import { useDocumentState } from "../../hooks/useDocumentState";
 import { getFileUrl, updateDocument, type LocalDoc } from "../../lib/localLibrary";
+import type { HighlightColor } from "../../types/annotation";
 
 interface PdfDocViewProps {
   doc: LocalDoc;
@@ -29,6 +30,8 @@ export default function PdfDocView({ doc, onRename }: PdfDocViewProps) {
   const [pageBg, setPageBg] = useState<PageBg>("dark");
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [noteMode, setNoteMode] = useState(false);
+  const [noteColor, setNoteColor] = useState<HighlightColor>("yellow");
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +88,8 @@ export default function PdfDocView({ doc, onRename }: PdfDocViewProps) {
         nextPage();
       } else if (e.key.toLowerCase() === "s") {
         setSidebarOpen((v) => !v);
+      } else if (e.key.toLowerCase() === "n") {
+        setNoteMode((v) => !v);
       } else if (e.key === "?") {
         setShortcutsOpen(true);
       }
@@ -129,12 +134,16 @@ export default function PdfDocView({ doc, onRename }: PdfDocViewProps) {
         zoom={zoom}
         pageBg={pageBg}
         sidebarOpen={sidebarOpen}
+        noteMode={noteMode}
+        noteColor={noteColor}
         onPrevPage={prevPage}
         onNextPage={nextPage}
         onZoomChange={setZoom}
         onFitWidth={() => setZoom(1)}
         onPageBgChange={setPageBg}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        onToggleNoteMode={() => setNoteMode((v) => !v)}
+        onNoteColorChange={setNoteColor}
       />
 
       <div className="flex min-h-0 flex-1">
@@ -147,6 +156,8 @@ export default function PdfDocView({ doc, onRename }: PdfDocViewProps) {
               url={pdfUrl}
               docId={docId}
               zoom={zoom}
+              noteMode={noteMode}
+              noteColor={noteColor}
               pulsingId={pulsingId}
               pageBg={pageBg}
               searchOpen={searchOpen}

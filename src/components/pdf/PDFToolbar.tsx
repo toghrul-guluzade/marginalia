@@ -7,9 +7,14 @@ import {
   MoveHorizontal,
   Settings,
   PanelRight,
+  StickyNote,
 } from "lucide-react";
 import type { PageBg } from "./PDFViewer";
+import { HIGHLIGHT_COLORS } from "../../types/annotation";
+import type { HighlightColor } from "../../types/annotation";
 import EditableTitle from "../ui/EditableTitle";
+
+const NOTE_COLORS: HighlightColor[] = ["yellow", "green", "pink", "blue"];
 
 const PAGE_BG_OPTIONS: Array<{ value: PageBg; label: string }> = [
   { value: "white", label: "White" },
@@ -66,12 +71,16 @@ interface PDFToolbarProps {
   zoom: number;
   pageBg: PageBg;
   sidebarOpen: boolean;
+  noteMode: boolean;
+  noteColor: HighlightColor;
   onPrevPage: () => void;
   onNextPage: () => void;
   onZoomChange: (zoom: number) => void;
   onFitWidth: () => void;
   onPageBgChange: (b: PageBg) => void;
   onToggleSidebar: () => void;
+  onToggleNoteMode: () => void;
+  onNoteColorChange: (c: HighlightColor) => void;
 }
 
 export default function PDFToolbar({
@@ -82,12 +91,16 @@ export default function PDFToolbar({
   zoom,
   pageBg,
   sidebarOpen,
+  noteMode,
+  noteColor,
   onPrevPage,
   onNextPage,
   onZoomChange,
   onFitWidth,
   onPageBgChange,
   onToggleSidebar,
+  onToggleNoteMode,
+  onNoteColorChange,
 }: PDFToolbarProps) {
   const [customZoom, setCustomZoom] = useState("");
   const pctValue = customZoom === "" ? Math.round(zoom * 100).toString() : customZoom;
@@ -100,6 +113,30 @@ export default function PDFToolbar({
 
   return (
     <div className="flex items-center gap-2 border-b border-rule bg-ink-2 px-3 py-1.5">
+      {/* Sticky-note tool */}
+      <button
+        className={`${iconBtn} ${noteMode ? "bg-ink-4 text-paper" : ""}`}
+        onClick={onToggleNoteMode}
+        aria-pressed={noteMode}
+        aria-label="Sticky note tool"
+        title="Sticky note — click the page to place (N)"
+      >
+        <StickyNote size={16} />
+      </button>
+      {noteMode &&
+        NOTE_COLORS.map((c) => (
+          <button
+            key={c}
+            className={`h-4 w-4 rounded-full border-2 transition-transform hover:scale-110 ${
+              noteColor === c ? "border-paper" : "border-transparent"
+            }`}
+            style={{ backgroundColor: HIGHLIGHT_COLORS[c] }}
+            aria-label={`Note color ${c}`}
+            onClick={() => onNoteColorChange(c)}
+          />
+        ))}
+      <div className="mx-1 h-4 w-px bg-rule" />
+
       {/* Title */}
       <div className="mx-2 flex flex-1 justify-center">
         <EditableTitle
