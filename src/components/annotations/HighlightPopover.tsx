@@ -70,13 +70,15 @@ export default function HighlightPopover({ highlight, docId, anchor, onClose }: 
       </blockquote>
 
       <textarea
-        className="mb-3 w-full resize-none rounded border border-gray-200 p-2 text-sm focus:border-brand focus:outline-none"
+        className="w-full resize-none rounded border border-gray-200 p-2 text-sm focus:border-brand focus:outline-none"
         rows={3}
+        maxLength={500}
         placeholder="Add a note…"
         value={note}
         onChange={(e) => setNote(e.target.value)}
         onBlur={() => updateNote(docId, highlight.id, note)}
       />
+      <div className="mb-3 mt-0.5 text-right text-[11px] text-gray-400">{note.length}/500</div>
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">

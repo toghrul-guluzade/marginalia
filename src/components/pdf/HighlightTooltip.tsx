@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { StickyNote } from "lucide-react";
 import type { HighlightColor } from "../../types/annotation";
 import { HIGHLIGHT_COLORS } from "../../types/annotation";
 
@@ -6,6 +7,8 @@ interface HighlightTooltipProps {
   /** Viewport coordinates of the selection's top-center. */
   anchor: { x: number; y: number };
   onHighlight: (color: HighlightColor) => void;
+  /** Quick-add: create a yellow highlight and immediately open a note editor. */
+  onQuickNote: () => void;
   onClose: () => void;
 }
 
@@ -15,7 +18,7 @@ const COLORS: HighlightColor[] = ["yellow", "green", "pink", "blue"];
  * A small floating toolbar shown above a text selection with four color swatches.
  * Dismisses on outside click or Escape.
  */
-export default function HighlightTooltip({ anchor, onHighlight, onClose }: HighlightTooltipProps) {
+export default function HighlightTooltip({ anchor, onHighlight, onQuickNote, onClose }: HighlightTooltipProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: anchor.x, top: anchor.y });
 
@@ -66,6 +69,15 @@ export default function HighlightTooltip({ anchor, onHighlight, onClose }: Highl
           onClick={() => onHighlight(color)}
         />
       ))}
+      <span className="mx-0.5 h-5 w-px bg-gray-200" />
+      <button
+        className="flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100"
+        aria-label="Highlight and add note"
+        title="Highlight + note"
+        onClick={onQuickNote}
+      >
+        <StickyNote size={16} />
+      </button>
     </div>
   );
 }

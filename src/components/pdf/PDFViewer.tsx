@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
 } from "react";
-import toast from "react-hot-toast";
 import { usePDFDocument } from "../../hooks/usePDFDocument";
 import { usePageObserver } from "../../hooks/usePageObserver";
 import { useTextSelection } from "../../hooks/useTextSelection";
@@ -14,6 +13,7 @@ import type { Highlight, HighlightColor } from "../../types/annotation";
 import PDFPage from "./PDFPage";
 import HighlightTooltip from "./HighlightTooltip";
 import HighlightPopover from "../annotations/HighlightPopover";
+import QuickNoteEditor from "../annotations/QuickNoteEditor";
 import DocumentSearchBar from "./DocumentSearchBar";
 
 export type PageBg = "white" | "cream" | "dark";
@@ -101,13 +101,17 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
   const currentPage = usePageObserver(scrollRef, totalPages);
   const { selection, clear } = useTextSelection();
   const addHighlight = useAnnotationStore((s) => s.addHighlight);
+  const updateHighlightNote = useAnnotationStore((s) => s.updateHighlightNote);
   const [activePopover, setActivePopover] = useState<{
     highlight: Highlight;
     anchor: DOMRect;
   } | null>(null);
+  const [quickNote, setQuickNote] = useState<{ id: string; anchor: { x: number; y: number } } | null>(
+    null,
+  );
 
-  function createHighlight(color: HighlightColor) {
-    if (!selection) return;
+  function createHighlight(color: HighlightColor): Highlight | null {
+    if (!selection) return null;
     const highlight: Highlight = {
       id: crypto.randomUUID(),
       docId,
@@ -119,7 +123,14 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
     addHighlight(highlight);
     clear();
     window.getSelection()?.removeAllRanges();
-    toast.success("Highlight added");
+    return highlight;
+  }
+
+  function handleQuickNote() {
+    if (!selection) return;
+    const anchor = selection.anchor;
+    const highlight = createHighlight("yellow");
+    if (highlight) setQuickNote({ id: highlight.id, anchor });
   }
 
   useImperativeHandle(ref, () => ({
@@ -172,7 +183,22 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
         <DocumentSearchBar scrollRootRef={scrollRef} onClose={() => onCloseSearch?.()} />
       )}
       {selection && (
-        <HighlightTooltip anchor={selection.anchor} onHighlight={createHighlight} onClose={clear} />
+        <HighlightTooltip
+          anchor={selection.anchor}
+          onHighlight={createHighlight}
+          onQuickNote={handleQuickNote}
+          onClose={clear}
+        />
+      )}
+      {quickNote && (
+        <QuickNoteEditor
+          anchor={quickNote.anchor}
+          onSave={(text) => {
+            if (text) updateHighlightNote(docId, quickNote.id, text);
+            setQuickNote(null);
+          }}
+          onCancel={() => setQuickNote(null)}
+        />
       )}
       {activePopover && (
         <HighlightPopover
