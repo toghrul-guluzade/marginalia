@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  getDocuments,
-  isSupabaseConfigured,
-  type DocumentRow,
-} from "../lib/supabase";
+import { listDocuments, type LocalDoc } from "../lib/localLibrary";
 
 export interface UseDocumentsResult {
-  documents: DocumentRow[];
-  filtered: DocumentRow[];
+  documents: LocalDoc[];
+  filtered: LocalDoc[];
   allTags: string[];
   isLoading: boolean;
-  error: Error | null;
   query: string;
   setQuery: (q: string) => void;
   selectedTags: string[];
@@ -19,28 +14,17 @@ export interface UseDocumentsResult {
   refresh: () => void;
 }
 
-export type SortKey = "lastOpened" | "dateAdded" | "title" | "annotations";
-
-/** Fetches the current user's documents and applies tag + search filters. */
+/** Reads the local (IndexedDB) document library and applies tag + search filters. */
 export function useDocuments(): UseDocumentsResult {
-  const [documents, setDocuments] = useState<DocumentRow[]>([]);
-  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
-  const [error, setError] = useState<Error | null>(null);
+  const [documents, setDocuments] = useState<LocalDoc[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const refresh = useCallback(() => {
-    if (!isSupabaseConfigured) {
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
-    getDocuments()
-      .then((docs) => {
-        setDocuments(docs);
-        setError(null);
-      })
-      .catch((e) => setError(e instanceof Error ? e : new Error(String(e))))
+    listDocuments()
+      .then(setDocuments)
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -58,7 +42,6 @@ export function useDocuments(): UseDocumentsResult {
     const q = query.trim().toLowerCase();
     return documents.filter((d) => {
       if (q && !d.title.toLowerCase().includes(q)) return false;
-      // AND filter: doc must contain every selected tag.
       if (selectedTags.length && !selectedTags.every((t) => d.tags?.includes(t))) return false;
       return true;
     });
@@ -77,7 +60,6 @@ export function useDocuments(): UseDocumentsResult {
     filtered,
     allTags,
     isLoading,
-    error,
     query,
     setQuery,
     selectedTags,

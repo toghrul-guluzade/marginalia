@@ -1,33 +1,18 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LibraryPage from "./pages/LibraryPage";
 import ViewerPage from "./pages/ViewerPage";
-import AuthPage from "./pages/AuthPage";
-import ProtectedRoute from "./components/ui/ProtectedRoute";
 
+// HashRouter so the SPA works at any base path (Vercel root + GitHub Pages subpath)
+// with no server-side rewrites required.
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <LibraryPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/doc/:docId"
-          element={
-            <ProtectedRoute>
-              <ViewerPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/" element={<LibraryPage />} />
+        <Route path="/doc/:docId" element={<ViewerPage />} />
       </Routes>
       <Toaster position="bottom-right" />
-    </BrowserRouter>
+    </HashRouter>
   );
 }

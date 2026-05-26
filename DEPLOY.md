@@ -1,65 +1,45 @@
 # Deploying Research Studio
 
-## 1. Supabase setup
+Research Studio is a **fully client-side, offline-capable** app — no backend, no login.
+PDFs are stored in your browser's IndexedDB and annotations in localStorage, all on the
+device you use. That means it deploys as a plain static site anywhere.
 
-1. Create a Supabase project.
-2. In the SQL editor, run [`supabase/schema.sql`](supabase/schema.sql) — this creates
-   the `documents` and `annotations` tables with Row Level Security and the private
-   `pdfs` storage bucket (with per-user storage policies).
-3. Copy your project URL and anon key.
-
-## 2. Production build & deploy (Vercel)
-
-Environment variables to set in the Vercel dashboard:
-
-```
-VITE_SUPABASE_URL=https://<project>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon key>
-VITE_BLOG_URL=https://yourblog.com   # optional — shows a "Back to blog" link
-```
-
-Then deploy:
+`base: "./"` (relative asset paths) + `HashRouter` mean **one build runs at any path** —
+a root domain (Vercel) or a repo subpath (GitHub Pages) — with no per-target rebuild and
+no server-side rewrites.
 
 ```bash
 npm install
-npm run build      # tsc -b && vite build — fix any TS errors before deploying
+npm run build     # tsc -b && vite build -> dist/
+npm run preview   # serve dist/ locally to check the production build
 ```
 
-- `vercel.json` rewrites all routes to `/index.html` (SPA) and sets a Content
-  Security Policy allowing `self`, `blob:` (for PDF object URLs), and your Supabase
-  project (`*.supabase.co`).
-- The PDF.js worker is bundled into `dist` by Vite (imported via `?url`), so there is
-  no "fake worker" fallback — no manual worker copy is required for pdfjs v5.
-- Build output is split into `pdfjs`, `vendor` (React/Router), and app chunks.
+Optional env var (build time): `VITE_BLOG_URL` shows a "Back to blog" link in the top nav.
 
-### Supabase Auth settings
+## Vercel
 
-In Supabase → Authentication → URL Configuration, add your deployment URL to both:
+1. Import the repo in Vercel (framework preset: Vite).
+2. Build command `npm run build`, output directory `dist`.
+3. Optionally set `VITE_BLOG_URL` in Project → Settings → Environment Variables.
 
-- **Site URL**
-- **Redirect URLs** (also add the iframe origin if embedding)
+`vercel.json` adds a Content Security Policy that allows `self` and `blob:` (PDF object
+URLs). No `connect-src` to any backend is needed.
 
-This makes email + Google OAuth redirects work from production.
+## GitHub Pages
 
-## 3. Embed on your blog (optional)
+A workflow is included at `.github/workflows/deploy.yml`:
 
-**Option A — subdirectory.** Set `base: "/research/"` in `vite.config.ts`, deploy, and
-have your blog reverse-proxy `/research/*` to the Vercel app.
+1. Repo → Settings → Pages → **Build and deployment → Source: GitHub Actions**.
+2. (Optional) Repo → Settings → Secrets and variables → Actions → **Variables** →
+   add `VITE_BLOG_URL`.
+3. Push to `main`. The workflow builds and publishes `dist/` to Pages.
 
-**Option B — iframe.** Deploy to its own subdomain and embed:
+The site is served at `https://<user>.github.io/<repo>/`; the relative base + HashRouter
+handle the subpath automatically.
 
-```html
-<iframe
-  src="https://research.yoursite.com"
-  style="width:100%;height:100vh;border:none;"
-  allow="clipboard-write"
-></iframe>
-```
+## Notes
 
-Add the iframe origin to the Supabase redirect URLs. The CSP `frame-ancestors` in
-`vercel.json` is `'self'`; widen it to your blog origin if embedding cross-origin.
-
-**Option C — standalone domain.** Point a custom domain at the Vercel deployment and
-link to it from your blog navbar.
-
-Set `VITE_BLOG_URL` so a "Back to blog" link appears in the top nav regardless of option.
+- The PDF.js worker is bundled into `dist` by Vite (imported via `?url`), so there is no
+  "fake worker" fallback and nothing to copy manually.
+- Data is per-browser. Use the sidebar **Export to Markdown** to back up annotations; PDFs
+  live in IndexedDB on the device that added them.

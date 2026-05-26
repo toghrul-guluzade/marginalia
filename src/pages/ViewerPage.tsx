@@ -7,28 +7,21 @@ import AnnotationSidebar from "../components/annotations/AnnotationSidebar";
 import ShortcutsModal from "../components/ui/ShortcutsModal";
 import AddTagDropdown from "../components/library/AddTagDropdown";
 import { tagColor } from "../lib/tagColors";
-import { useDocumentAnnotations } from "../hooks/useDocumentAnnotations";
 import { useDocumentState } from "../hooks/useDocumentState";
-import {
-  getDocument,
-  getSignedUrl,
-  updateDocument,
-  isSupabaseConfigured,
-} from "../lib/supabase";
+import { getDocument, getFileUrl, updateDocument } from "../lib/localLibrary";
 import type { HighlightColor } from "../types/annotation";
 
-// Fallback demo PDF (docId "test", or whenever Supabase is unconfigured).
+// Built-in demo PDF (docId "test").
 const TEST_PDF_URL =
   "https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf";
 const TEST_TITLE = "Trace-based Just-in-Time Type Specialization";
 
 export default function ViewerPage() {
   const { docId = "test" } = useParams();
-  useDocumentAnnotations(docId);
   const { restore, save } = useDocumentState(docId);
   const viewerRef = useRef<PDFViewerHandle>(null);
 
-  const isDemo = !isSupabaseConfigured || docId === "test";
+  const isDemo = docId === "test";
   const [pdfUrl, setPdfUrl] = useState<string | null>(isDemo ? TEST_PDF_URL : null);
   const [title, setTitle] = useState(isDemo ? TEST_TITLE : "Loading…");
   const [docTags, setDocTags] = useState<string[]>([]);
@@ -36,15 +29,20 @@ export default function ViewerPage() {
   const [tagOpen, setTagOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Load the real document (signed URL + title) and stamp last_opened_at.
+  // Load the document blob from IndexedDB, set title/tags, stamp last_opened_at.
   useEffect(() => {
     if (isDemo) return;
     let cancelled = false;
+    let objectUrl: string | null = null;
     getDocument(docId)
       .then(async (doc) => {
         if (!doc) throw new Error("Document not found");
-        const url = await getSignedUrl(doc.storage_path);
-        if (cancelled) return;
+        const url = await getFileUrl(doc.id);
+        if (cancelled) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        objectUrl = url;
         setPdfUrl(url);
         setTitle(doc.title);
         setDocTags(doc.tags ?? []);
@@ -53,6 +51,7 @@ export default function ViewerPage() {
       .catch((e) => !cancelled && setLoadError(e instanceof Error ? e.message : "Failed to load"));
     return () => {
       cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [docId, isDemo]);
   const [currentPage, setCurrentPage] = useState(1);

@@ -6,15 +6,11 @@ import {
   ZoomOut,
   MoveHorizontal,
   StickyNote,
-  Loader2,
-  Check,
-  AlertTriangle,
   Settings,
   Highlighter,
 } from "lucide-react";
 import { HIGHLIGHT_COLORS } from "../../types/annotation";
 import type { HighlightColor } from "../../types/annotation";
-import { useSyncStatus } from "../../lib/annotationSync";
 import type { PageBg } from "./PDFViewer";
 
 const PAGE_BG_OPTIONS: Array<{ value: PageBg; label: string }> = [
@@ -64,16 +60,6 @@ function ReadingPrefs({ pageBg, onPageBgChange }: { pageBg: PageBg; onPageBgChan
       )}
     </div>
   );
-}
-
-function SyncIndicator() {
-  const status = useSyncStatus((s) => s.status);
-  if (status === "idle") return null;
-  if (status === "syncing")
-    return <Loader2 size={16} className="animate-spin text-gray-400" aria-label="Syncing" />;
-  if (status === "error")
-    return <AlertTriangle size={16} className="text-amber-500" aria-label="Sync failed" />;
-  return <Check size={16} className="text-green-600" aria-label="In sync" />;
 }
 
 const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -272,7 +258,6 @@ export default function PDFToolbar({
       )}
 
       <div className="ml-auto flex items-center gap-2">
-        <SyncIndicator />
         <ReadingPrefs pageBg={pageBg} onPageBgChange={onPageBgChange} />
       </div>
     </div>

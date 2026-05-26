@@ -5,14 +5,14 @@ import { useAnnotationStore } from "../../store/annotationStore";
 import { getCachedThumbnail } from "../../lib/pdfThumbnail";
 import { tagColor } from "../../lib/tagColors";
 import AddTagDropdown from "./AddTagDropdown";
-import type { DocumentRow } from "../../lib/supabase";
+import type { LocalDoc } from "../../lib/localLibrary";
 
 interface DocumentCardProps {
-  doc: DocumentRow;
+  doc: LocalDoc;
   existingTags: string[];
   onRename: (id: string, title: string) => void;
-  onAddTag: (doc: DocumentRow, tag: string) => void;
-  onDelete: (doc: DocumentRow) => void;
+  onAddTag: (doc: LocalDoc, tag: string) => void;
+  onDelete: (doc: LocalDoc) => void;
 }
 
 function formatSize(bytes: number | null): string {

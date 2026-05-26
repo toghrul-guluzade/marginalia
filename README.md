@@ -1,16 +1,16 @@
 # Research Studio
 
-A clean, fast, personal research tool you own. Upload PDFs, read them, highlight
-text in multiple colors, leave sticky notes, organize documents in a library, and
-export your annotations. No AI. No backend processing — just an annotation-only MVP.
+A clean, fast, personal research tool you own. Add PDFs, read them, highlight text in
+multiple colors, leave sticky notes, organize documents in a library, and export your
+annotations. No AI. No backend. No login — everything lives in your browser.
 
 ## Stack
 
 - React + Vite + TypeScript
 - PDF.js (`pdfjs-dist`) for rendering
-- Supabase for auth, database, and storage
+- IndexedDB for PDF storage, localStorage for annotations (fully local)
 - Tailwind CSS v4 for styling
-- Zustand for state, react-router-dom for routing
+- Zustand for state, react-router-dom (HashRouter) for routing
 
 ## Development
 
@@ -18,19 +18,27 @@ export your annotations. No AI. No backend processing — just an annotation-onl
 npm install
 npm run dev      # start dev server
 npm run build    # type-check + production build
+npm run preview  # serve the production build
 ```
 
-Copy `.env.local` and fill in your Supabase project URL and anon key:
-
-```
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
-```
+No environment variables are required. Optionally set `VITE_BLOG_URL` to show a
+"Back to blog" link in the top nav.
 
 ## Routes
 
-- `/` — document library
-- `/doc/:docId` — PDF viewer
-- `/auth` — login / signup
+- `/` — document library (add PDFs, tag, search, sort)
+- `/doc/:docId` — PDF viewer (`/doc/test` is a built-in demo document)
 
-Built from `Research_Studio_ClaudeCode_Spec.docx`, sprint by sprint.
+## Data & privacy
+
+PDFs are stored in your browser's IndexedDB and annotations in localStorage, scoped to the
+device and browser you use. Nothing is uploaded anywhere. Use the sidebar's **Export to
+Markdown** to back up annotations.
+
+## Deploying
+
+Static site — deploys to Vercel or GitHub Pages with one build (relative base + HashRouter
+run at any path). See [`DEPLOY.md`](DEPLOY.md).
+
+Built from `Research_Studio_ClaudeCode_Spec.docx`, sprint by sprint, then converted to a
+backend-free local app.

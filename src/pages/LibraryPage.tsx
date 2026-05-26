@@ -1,23 +1,18 @@
 import { useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Plus, Search, Upload, LogOut, X } from "lucide-react";
+import { Plus, Search, Upload, X } from "lucide-react";
 import toast from "react-hot-toast";
-import { useAuth } from "../hooks/useAuth";
 import { useDocuments } from "../hooks/useDocuments";
 import { useAnnotationStore } from "../store/annotationStore";
 import DocumentCard from "../components/library/DocumentCard";
 import {
-  isSupabaseConfigured,
-  uploadPDF,
+  addDocument,
   updateDocument,
   deleteDocument,
-  type DocumentRow,
-} from "../lib/supabase";
+  type LocalDoc,
+} from "../lib/localLibrary";
 import { generateThumbnail, cacheThumbnail } from "../lib/pdfThumbnail";
 
 export default function LibraryPage() {
-  const navigate = useNavigate();
-  const { user, signOut } = useAuth();
   const {
     documents,
     filtered,
@@ -61,10 +56,6 @@ export default function LibraryPage() {
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    if (!user) {
-      toast.error("Sign in to upload");
-      return;
-    }
     for (const file of Array.from(files)) {
       if (file.type !== "application/pdf") {
         toast.error(`${file.name} is not a PDF`);
@@ -74,17 +65,17 @@ export default function LibraryPage() {
         setUploadProgress(10);
         const buffer = await file.arrayBuffer();
         const { dataUrl, pageCount } = await generateThumbnail(buffer.slice(0));
-        setUploadProgress(50);
-        const doc = await uploadPDF(file, user.id, {
+        setUploadProgress(60);
+        const doc = await addDocument(file, {
           title: file.name.replace(/\.pdf$/i, ""),
           pageCount,
         });
         cacheThumbnail(doc.id, dataUrl);
         setUploadProgress(100);
-        toast.success(`Uploaded ${doc.title}`);
+        toast.success(`Added ${doc.title}`);
         refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Upload failed");
+        toast.error(err instanceof Error ? err.message : "Could not add PDF");
       } finally {
         setUploadProgress(null);
       }
@@ -92,35 +83,21 @@ export default function LibraryPage() {
   }
 
   async function handleRename(id: string, title: string) {
-    try {
-      await updateDocument(id, { title });
-      refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Rename failed");
-    }
+    await updateDocument(id, { title });
+    refresh();
   }
 
-  async function handleAddTag(doc: DocumentRow, tag: string) {
-    try {
-      await updateDocument(doc.id, { tags: [...new Set([...(doc.tags ?? []), tag])] });
-      refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not add tag");
-    }
+  async function handleAddTag(doc: LocalDoc, tag: string) {
+    await updateDocument(doc.id, { tags: [...new Set([...(doc.tags ?? []), tag])] });
+    refresh();
   }
 
-  async function handleDelete(doc: DocumentRow) {
+  async function handleDelete(doc: LocalDoc) {
     if (!window.confirm(`Delete "${doc.title}"? This cannot be undone.`)) return;
-    try {
-      await deleteDocument(doc);
-      toast.success("Deleted");
-      refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
-    }
+    await deleteDocument(doc.id);
+    toast.success("Deleted");
+    refresh();
   }
-
-  const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   return (
     <div className="flex h-screen flex-col bg-gray-50">
@@ -144,24 +121,6 @@ export default function LibraryPage() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        {isSupabaseConfigured && (
-          <div className="flex items-center gap-2">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-xs font-medium text-white"
-              title={user?.email ?? ""}
-            >
-              {initials}
-            </span>
-            <button
-              className="rounded p-1.5 text-gray-500 hover:bg-gray-100"
-              onClick={() => signOut().then(() => navigate("/auth"))}
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
-        )}
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -199,18 +158,7 @@ export default function LibraryPage() {
 
         {/* Main grid */}
         <main className="relative min-w-0 flex-1 overflow-auto p-4">
-          {!isSupabaseConfigured ? (
-            <div className="mx-auto mt-12 max-w-md rounded-lg border border-amber-200 bg-amber-50 p-6 text-center">
-              <p className="font-medium text-amber-800">Connect Supabase to use your library</p>
-              <p className="mt-1 text-sm text-amber-700">
-                Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> in{" "}
-                <code>.env.local</code>, then run the SQL in <code>supabase/schema.sql</code>.
-              </p>
-              <Link to="/doc/test" className="mt-4 inline-block text-sm font-medium text-brand hover:underline">
-                Try the demo viewer →
-              </Link>
-            </div>
-          ) : isLoading ? (
+          {isLoading ? (
             <p className="mt-12 text-center text-gray-400">Loading your library…</p>
           ) : documents.length === 0 ? (
             <button
@@ -259,7 +207,7 @@ export default function LibraryPage() {
           )}
 
           {/* Floating upload button (when docs exist) */}
-          {isSupabaseConfigured && documents.length > 0 && (
+          {documents.length > 0 && (
             <button
               className="fixed bottom-6 right-6 flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white shadow-lg hover:bg-brand-dark"
               onClick={() => fileInputRef.current?.click()}
@@ -273,7 +221,7 @@ export default function LibraryPage() {
           {uploadProgress !== null && (
             <div className="fixed bottom-6 left-1/2 w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
               <div className="mb-1 flex items-center justify-between text-xs text-gray-600">
-                <span>Uploading…</span>
+                <span>Adding…</span>
                 <X size={14} className="opacity-0" />
               </div>
               <div className="h-1.5 overflow-hidden rounded bg-gray-100">
