@@ -6,7 +6,7 @@ import {
 } from "react";
 import { usePDFDocument } from "../../hooks/usePDFDocument";
 import { usePageObserver } from "../../hooks/usePageObserver";
-import PageCanvas from "./PageCanvas";
+import PDFPage from "./PDFPage";
 
 interface PDFViewerProps {
   /** A blob URL or remote URL to the PDF. */
@@ -90,7 +90,7 @@ const PDFViewer = forwardRef<PDFViewerHandle, PDFViewerProps>(function PDFViewer
     <div ref={scrollRef} className="flex h-full justify-center overflow-auto bg-gray-100 py-4">
       <div className="flex w-full max-w-3xl flex-col gap-4 px-4">
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-          <PageCanvas key={pageNumber} pdf={pdf} pageNumber={pageNumber} zoom={zoom} />
+          <PDFPage key={pageNumber} pdf={pdf} pageNumber={pageNumber} zoom={zoom} />
         ))}
       </div>
     </div>
