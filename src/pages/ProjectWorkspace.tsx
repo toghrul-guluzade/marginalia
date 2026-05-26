@@ -37,6 +37,22 @@ export default function ProjectWorkspace() {
   const activeDocId = docId ?? docs[0]?.id ?? null;
   const activeDoc = docs.find((d) => d.id === activeDocId) ?? null;
 
+  /** Returns `desired`, or `desired (2)`, `desired (3)`… so titles stay unique
+   *  within the project. `extra` lets a single upload batch dedupe against itself. */
+  function uniqueTitle(desired: string, opts: { excludeId?: string; extra?: string[] } = {}): string {
+    const base = desired.trim() || "Untitled";
+    const taken = new Set(
+      [
+        ...docs.filter((d) => d.id !== opts.excludeId).map((d) => d.title),
+        ...(opts.extra ?? []),
+      ].map((t) => t.toLowerCase()),
+    );
+    if (!taken.has(base.toLowerCase())) return base;
+    let n = 2;
+    while (taken.has(`${base} (${n})`.toLowerCase())) n++;
+    return `${base} (${n})`;
+  }
+
   const refresh = useCallback(() => {
     return listDocuments(projectId).then((d) =>
       setDocs(d.sort((a, b) => a.created_at.localeCompare(b.created_at))),
@@ -68,6 +84,7 @@ export default function ProjectWorkspace() {
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     let firstNewId: string | null = null;
+    const batch: string[] = []; // titles created in this batch, for dedupe
     for (const file of Array.from(files)) {
       const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
       const isText = /\.(md|markdown|txt)$/i.test(file.name) || /^text\//.test(file.type);
@@ -75,22 +92,17 @@ export default function ProjectWorkspace() {
         if (isPdf) {
           const buffer = await file.arrayBuffer();
           const { dataUrl, pageCount } = await generateThumbnail(buffer.slice(0));
-          const doc = await addDocument(file, {
-            title: file.name.replace(/\.pdf$/i, ""),
-            pageCount,
-            projectId,
-          });
+          const title = uniqueTitle(file.name.replace(/\.pdf$/i, ""), { extra: batch });
+          batch.push(title);
+          const doc = await addDocument(file, { title, pageCount, projectId });
           cacheThumbnail(doc.id, dataUrl);
           firstNewId ??= doc.id;
           toast.success(`Added ${doc.title}`);
         } else if (isText) {
           const content = await file.text();
-          const doc = await addTextDocument({
-            title: file.name.replace(/\.(md|markdown|txt)$/i, ""),
-            content,
-            projectId,
-            filename: file.name,
-          });
+          const title = uniqueTitle(file.name.replace(/\.(md|markdown|txt)$/i, ""), { extra: batch });
+          batch.push(title);
+          const doc = await addTextDocument({ title, content, projectId, filename: file.name });
           firstNewId ??= doc.id;
           toast.success(`Added ${doc.title}`);
         } else {
@@ -105,7 +117,7 @@ export default function ProjectWorkspace() {
   }
 
   async function handleNewNote() {
-    const doc = await addTextDocument({ title: "Untitled note", content: "", projectId });
+    const doc = await addTextDocument({ title: uniqueTitle("Untitled note"), content: "", projectId });
     await refresh();
     navigate(`/project/${projectId}/${doc.id}`);
   }
@@ -122,7 +134,7 @@ export default function ProjectWorkspace() {
         toast.success(`Sent to ${note?.title ?? "note"}`);
       } else {
         const note = await addTextDocument({
-          title: `Notes — ${payload.sourceTitle}`.slice(0, 60),
+          title: uniqueTitle(`Notes — ${payload.sourceTitle}`.slice(0, 60)),
           content: block,
           projectId,
         });
@@ -135,8 +147,10 @@ export default function ProjectWorkspace() {
   }
 
   async function handleRenameDoc(id: string, title: string) {
-    await updateDocument(id, { title });
-    refresh();
+    const unique = uniqueTitle(title, { excludeId: id });
+    await updateDocument(id, { title: unique });
+    await refresh();
+    if (unique !== title.trim()) toast(`A document is already named that — saved as “${unique}”`);
   }
 
   async function handleMoveDoc(doc: LocalDoc, targetProjectId: string) {

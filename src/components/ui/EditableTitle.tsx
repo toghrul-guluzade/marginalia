@@ -32,7 +32,7 @@ export default function EditableTitle({ value, onSave, className = "" }: Editabl
 
   return (
     <span
-      className={`cursor-text truncate ${className}`}
+      className={`cursor-text truncate rounded px-1 hover:bg-ink-3/60 hover:underline hover:decoration-dotted hover:underline-offset-4 ${className}`}
       title="Click to rename"
       onClick={() => setEditing(true)}
     >
