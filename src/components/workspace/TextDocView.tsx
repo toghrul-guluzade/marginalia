@@ -22,9 +22,11 @@ import {
   Download,
   Check,
   Loader2,
+  Quote as QuoteIcon,
 } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import EditableTitle from "../ui/EditableTitle";
+import ProjectAnnotationsPanel, { type AnnotationRef } from "./ProjectAnnotationsPanel";
 import { getTextContent, saveTextContent, type LocalDoc } from "../../lib/localLibrary";
 
 // tiptap-markdown augments editor.storage at runtime but ships no types for it.
@@ -40,9 +42,18 @@ function Sep() {
   return <span className="mx-1 h-4 w-px shrink-0 bg-rule" />;
 }
 
-export default function TextDocView({ doc, onRename }: { doc: LocalDoc; onRename: (title: string) => void }) {
+export default function TextDocView({
+  doc,
+  onRename,
+  pdfDocs,
+}: {
+  doc: LocalDoc;
+  onRename: (title: string) => void;
+  pdfDocs: LocalDoc[];
+}) {
   const [loaded, setLoaded] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
+  const [panelOpen, setPanelOpen] = useState(false);
   const saveTimer = useRef<number | null>(null);
 
   const editor = useEditor({
@@ -98,6 +109,15 @@ export default function TextDocView({ doc, onRename }: { doc: LocalDoc; onRename
     a.download = `${doc.title.replace(/[^\w.-]+/g, "_") || "note"}.md`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function insertAnnotation(ref: AnnotationRef) {
+    if (!editor) return;
+    // tiptap-markdown parses inserted strings as Markdown.
+    const quote = ref.text.split("\n").join(" ").trim();
+    const noteLine = ref.note ? `\n${ref.note.trim()}\n` : "";
+    const md = `\n> ${quote}\n${noteLine}\n*— ${ref.sourceTitle}, p.${ref.page}*\n\n`;
+    editor.chain().focus().insertContent(md).run();
   }
 
   const words = editor
@@ -208,20 +228,37 @@ export default function TextDocView({ doc, onRename }: { doc: LocalDoc; onRename
         <button className={tBtn} onClick={exportMarkdown} title="Download .md" aria-label="Download markdown">
           <Download size={16} />
         </button>
+        <button
+          className={`${tBtn} ${panelOpen ? tActive : ""}`}
+          onClick={() => setPanelOpen((v) => !v)}
+          title="Project annotations & references"
+          aria-label="Toggle project annotations"
+        >
+          <QuoteIcon size={16} />
+        </button>
       </div>
 
-      {/* Editor page — A4 proportions (210 × 297mm) */}
-      <div className="min-h-0 flex-1 overflow-auto bg-ink py-8">
-        <div
-          className="mx-auto rounded-sm bg-cream shadow-xl"
-          style={{ width: "210mm", minHeight: "297mm", padding: "22mm 24mm" }}
-        >
-          {loaded ? (
-            <EditorContent editor={editor} />
-          ) : (
-            <p className="text-ink-5">Loading…</p>
-          )}
+      <div className="flex min-h-0 flex-1">
+        {/* Editor page — A4 proportions (210 × 297mm) */}
+        <div className="min-h-0 flex-1 overflow-auto bg-ink py-8">
+          <div
+            className="mx-auto rounded-sm bg-cream shadow-xl"
+            style={{ width: "210mm", minHeight: "297mm", padding: "22mm 24mm" }}
+          >
+            {loaded ? (
+              <EditorContent editor={editor} />
+            ) : (
+              <p className="text-ink-5">Loading…</p>
+            )}
+          </div>
         </div>
+
+        <ProjectAnnotationsPanel
+          pdfDocs={pdfDocs}
+          isOpen={panelOpen}
+          onClose={() => setPanelOpen(false)}
+          onInsert={insertAnnotation}
+        />
       </div>
     </div>
   );

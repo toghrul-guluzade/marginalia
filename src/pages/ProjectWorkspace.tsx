@@ -180,6 +180,7 @@ export default function ProjectWorkspace() {
         <DocPane
           key={activeDoc.id}
           doc={activeDoc}
+          docs={docs}
           onRename={(title) => handleRenameDoc(activeDoc.id, title)}
         />
       ) : (
